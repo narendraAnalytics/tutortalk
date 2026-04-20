@@ -1,8 +1,0 @@
-{
-  "name": "TutorTalk",
-  "description": "A real-time voice-based AI tutor that helps students understand subjects through Socratic dialogue and live conversation.",
-  "requestFramePermissions": [
-    "microphone"
-  ],
-  "majorCapabilities": []
-}
