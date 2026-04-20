@@ -1,0 +1,264 @@
+﻿
+TutorTalk
+Live Voice AI Tutor
+Complete Architecture & Build Guide
+Stack
+Next.js 15  •  Tailwind CSS  •  Clerk Auth
+Neon PostgreSQL  •  Drizzle ORM  •  Vercel
+Gemini Live API  (gemini-3.1-flash-live-preview)
+Prepared by Narendra  •  nk-analytics
+April 2026
+
+
+1. What Is TutorTalk?
+TutorTalk is a live voice AI tutor built on the Gemini Live API. Students open the app, click Start Session, speak their doubts naturally, and the AI responds in real-time spoken audio - no typing, no waiting. It uses a Socratic teaching style: instead of giving direct answers, the AI guides students through guiding questions, helping them develop genuine understanding.
+
+The key innovation is the use of gemini-3.1-flash-live-preview - Google's latest and recommended model for all Live API use cases. This model provides native audio processing (no separate STT/TTS pipeline), 128k context window, built-in barge-in, voice activity detection, and optional Google Search grounding for up-to-date factual answers.
+
+2. Real-World Problems It Solves
+2.1  The Tutor Access Gap
+Quality 1-on-1 tutoring costs ₹500-₹2000/hour in India and is unavailable to millions of students in Tier 2/3 cities. TutorTalk provides 24/7 personalized Socratic guidance at a fraction of the cost, accessible from any browser.
+
+2.2  The Passive Learning Problem
+Most ed-tech platforms show videos or text. Students passively consume without truly understanding. A voice-first conversational tutor forces active engagement - the student must articulate what they know, and the AI responds to exactly that, not a generic explanation.
+
+2.3  Exam Preparation Without Human Availability
+Students often study late at night or on weekends when tutors are unavailable. TutorTalk is always on, never frustrated, and infinitely patient - ideal for JEE, NEET, UPSC, IELTS, and university exam prep.
+
+2.4  Language Barrier in STEM Learning
+The Gemini Live API supports 70+ languages. TutorTalk can conduct sessions in Hindi, Telugu, Tamil, and other regional languages - something no traditional digital tutoring platform offers at this quality level.
+
+2.5  Post-Session Knowledge Retention
+Students forget what they learned. TutorTalk automatically generates a structured PDF session report - key concepts discussed, Socratic questions asked, student's key insights - so learning is reinforced after the session ends.
+
+3. Architecture Overview
+TutorTalk uses a three-layer architecture. The critical design decision is that the Gemini Live WebSocket session is established directly between the student's browser and Google's API - Vercel never touches the audio stream. This is Google's officially recommended approach for browser-based voice apps and gives the lowest possible latency.
+
+3.1  The Three Layers
+
+LayerTechnologyResponsibilityLayer 1 - ServerVercel / Next.js 15Clerk auth, ephemeral token generation, session save API, PDF report generation. No long-lived connections.Layer 2 - BrowserWeb Audio API + WebSocketMic capture, PCM conversion via AudioWorklet, direct WebSocket to Google, audio playback via AudioContext.Layer 3 - AIGemini Live APIReal-time voice understanding, Socratic response generation, barge-in, turn detection, Google Search grounding.
+3.2  The Authentication Flow (Ephemeral Token Pattern)
+This is the secure, Google-recommended approach for browser-direct WebSocket connections. Your API key never leaves the server.
+
+1. Student opens /session page (protected by Clerk).
+2. Browser calls Next.js API route /api/token (authenticated request).
+3. Server uses master GEMINI_API_KEY to request a short-lived ephemeral token from Google.
+4. Server returns the token to the browser (token valid for one session only).
+5. Browser opens WebSocket directly to Google using the ephemeral token.
+6. Browser sends the setup message (model, system instructions, tools config).
+7. Session begins - all audio flows directly between browser and Google.
+
+3.3  The Real-Time Conversation Loop
+8. AudioWorklet captures mic input off the main thread.
+9. Raw float32 samples converted to 16-bit PCM at 16kHz mono.
+10. PCM chunks encoded as Base64 and sent as realtimeInput messages via WebSocket.
+11. Gemini Live processes audio natively - no separate STT step.
+12. AI generates spoken response and streams back 24kHz PCM audio chunks.
+13. Browser decodes chunks and queues them for immediate playback via AudioContext.
+14. Barge-in: if student speaks mid-response, WebSocket sends interrupted signal, playback stops instantly.
+
+3.4  Post-Session Flow
+15. Student clicks End Session.
+16. WebSocket closes gracefully.
+17. Browser sends transcript (captured from inputTranscription + outputTranscription events) to /api/session/save.
+18. Server saves session record to Neon via Drizzle.
+19. Server calls /api/session/report - uses Gemini text API (regular REST) to generate a structured learning summary from the transcript.
+20. PDF generated server-side using @react-pdf/renderer, uploaded to Vercel Blob storage.
+21. PDF URL saved to reports table. Student sees download button on dashboard.
+
+4. Database Schema (Neon + Drizzle ORM)
+Three tables are all that's needed. Neon serverless PostgreSQL with Drizzle ORM keeps queries type-safe and migrations straightforward.
+
+4.1  users
+ColumnTypeConstraintPurposeiduuidPRIMARY KEYInternal user identifierclerk_idvarchar(255)UNIQUE NOT NULLClerk's user ID for auth syncemailvarchar(255)UNIQUE NOT NULLStudent email addressnamevarchar(255)Display name from Clerkcreated_attimestampDEFAULT now()Account creation time
+4.2  sessions
+ColumnTypeConstraintPurposeiduuidPRIMARY KEYSession identifieruser_iduuidFK → users.idWhich student this belongs tosubjectvarchar(255)NOT NULLSubject chosen at session starttranscripttextFull JSON transcript from sessionduration_secsintegerSession length in secondsstarted_attimestampNOT NULLWhen session beganended_attimestampWhen session ended
+4.3  reports
+ColumnTypeConstraintPurposeiduuidPRIMARY KEYReport identifiersession_iduuidFK → sessions.idLinks report to sessionpdf_urltextNOT NULLVercel Blob public URL for PDFsummarytextAI-generated learning summary textgenerated_attimestampDEFAULT now()When PDF was created
+5. Google Search Grounding - Latest Info in Voice
+By default, Gemini's knowledge has a training cutoff. For a tutor app, students may ask about recent exam patterns, new syllabus changes, or current events in science. Enabling Google Search grounding in the setup message solves this automatically.
+
+5.1  How It Works
+When Google Search is added to the tools array in the session setup message, Gemini automatically decides when to trigger a search based on the student's question. The model fetches real-time web results, synthesizes them into a natural spoken response, and returns grounding metadata with source citations. No additional code is needed on your part - it is fully server-side within Google's infrastructure.
+
+5.2  Setup Message with Google Search Enabled
+Setup JSON  In the tools array of the WebSocket setup message, include: { "google_search": {} }. This single addition enables real-time grounding for the entire session.
+5.3  What This Unlocks for TutorTalk
+• Student asks "What is the latest JEE Advanced pattern?" - Gemini searches and responds accurately.
+• Student asks about a recent discovery in biology - Gemini grounds its explanation in current data.
+• Reduces hallucinations significantly for factual science and math questions.
+• According to Google's official docs, Gemini 3 models support combining Google Search with custom function calling in the same session - enabling even richer agentic behaviour in future.
+
+Note on Billing  Google charges per search query that the model executes, not per session. If a student asks five questions that each trigger a search, that is five billable queries. Factor this into your pricing model.
+6. Step-by-Step Build Plan
+Step 1 - Project Scaffold
+Run: npx create-next-app@latest tutortalk --typescript --tailwind --app
+Create the following folder structure inside src/:
+• app/ - Next.js App Router pages
+• app/api/ - API routes (token, session/save, session/report)
+• components/ - UI components
+• db/ - Drizzle schema and client
+• lib/ - Utility functions
+• worklets/ - AudioWorklet processor files
+
+Step 2 - Environment Variables
+Add to .env.local:
+• CLERK_SECRET_KEY - from Clerk dashboard
+• NEXT_PUBLIC_CLERK_PUBLISHABLE_KEY - from Clerk dashboard
+• GEMINI_API_KEY - from Google AI Studio (master key, server-only)
+• DATABASE_URL - Neon connection string
+# Cloudinary
+CLOUDINARY_CLOUD_NAME=
+CLOUDINARY_API_KEY=
+CLOUDINARY_API_SECRET=
+
+Security  GEMINI_API_KEY must never have the NEXT_PUBLIC_ prefix. It stays server-side only. The browser only ever receives short-lived ephemeral tokens.
+Step 3 - Clerk Auth Setup
+• Wrap app/layout.tsx with ClerkProvider.
+• Add middleware.ts to protect /dashboard and /session routes.
+• Create app/api/auth/sync/route.ts - lazy user sync: on first authenticated API call, check if user exists in Neon. If not, insert. No webhooks needed.
+
+Step 4 - Drizzle Schema + Neon
+Create src/db/schema.ts with the three tables shown in Section 4. Run drizzle-kit push to apply to Neon. Set up src/db/index.ts to export the Neon client and db instance for use across API routes.
+
+Step 5 - Ephemeral Token API Route (/api/token)
+This is the most critical security piece. The route must:
+22. Verify the Clerk session (use auth() from @clerk/nextjs/server).
+23. Call Google's token exchange endpoint using the master GEMINI_API_KEY.
+24. Return the short-lived token in the JSON response.
+25. Keep total execution time under 2 seconds (well within Vercel limits).
+
+Step 6 - WebSocket Connection (Browser)
+In your /session page component, after the user clicks Start Session:
+26. Call fetch("/api/token") to get the ephemeral token.
+27. Create a new WebSocket pointing to the v1beta BidiGenerateContent endpoint with the token as access_token query parameter.
+28. Attach onopen, onmessage, onerror, and onclose handlers.
+29. On open, immediately send the setup message (see Section 5.2 for shape with Google Search enabled).
+
+Step 7 - AudioWorklet Processor
+Create public/worklets/capture-processor.js (must be a separate file served from public/). The processor:
+• Extends AudioWorkletProcessor.
+• Receives float32 audio samples in the process() method.
+• Converts to Int16Array (multiply by 32767, clamp).
+• Posts the Int16Array back to main thread via this.port.postMessage().
+
+In your main React component, call audioContext.audioWorklet.addModule("/worklets/capture-processor.js"), create an AudioWorkletNode, and in the node's port.onmessage handler, Base64-encode the Int16Array and send it as a realtimeInput WebSocket message.
+
+Step 8 - Receiving and Playing AI Audio
+In the WebSocket onmessage handler, parse the JSON and process all parts in the serverContent event (Gemini 3.1 can return audio chunks and transcript in the same event). For each inlineData part with mimeType audio/pcm, decode the Base64 data to an ArrayBuffer, create an AudioBuffer at 24000 Hz, and push it to a playback queue. A small queue manager plays buffers sequentially to ensure gapless audio.
+
+Step 9 - Barge-In Handling
+Listen for the interrupted field in serverContent messages. When interrupted is true, immediately: clear the playback queue, call audioBufferSourceNode.stop() on the current playing node, and reset the AudioContext output. This allows the student to speak over the AI mid-response - a key feature that makes the conversation feel natural.
+
+Step 10 - Transcript Capture
+Throughout the session, capture text from two event types: inputTranscription (student's voice, transcribed) and outputTranscription (AI's spoken response, transcribed). Build a transcript array of objects with role ("student" or "tutor") and text. This array becomes the session record.
+
+Step 11 - Session Save API Route (/api/session/save)
+POST route that accepts subject, transcript array, duration, and timestamps. Inserts a row into the sessions table via Drizzle. Returns the new session ID. Called from the browser when the student clicks End Session.
+
+Step 12 - PDF Report Generation (/api/session/report)
+POST route that accepts the session ID. Steps:
+30. Fetch the transcript from Neon.
+31. Call Gemini text API (standard generateContent REST, not Live API) with the transcript to produce a structured learning summary: concepts covered, guiding questions asked, student insights, recommended next steps.
+32. Use @react-pdf/renderer to render a styled PDF from the summary + raw transcript.
+33. Upload the PDF buffer to Vercel Blob using @vercel/blob.
+34. Insert a row into the reports table with the PDF URL.
+35. Return the PDF URL to the browser.
+
+Step 13 - Dashboard Page
+A server-rendered Next.js page that fetches the authenticated user's sessions from Neon and displays them as a list - subject, date, duration, and a Download Report button linking to the PDF URL. No client state needed - pure Server Components.
+
+Step 14 - Subject Selection UI
+Before starting a session, show a subject picker (Math, Physics, Chemistry, Biology, English, History, etc.) and an optional topic field. These are passed into the session record and also injected into the system instruction: "You are a Socratic tutor for [subject]. The student wants to understand [topic]."
+
+Step 15 - Deploy to Vercel
+Push to GitHub and connect the repository in the Vercel dashboard. Add all environment variables from Step 2. No special Vercel configuration is required - the app deploys as a standard Next.js 15 project. The only runtime note: ensure GEMINI_API_KEY is server-only (no NEXT_PUBLIC prefix).
+
+7. Packages to Install
+7.1  Core Framework
+PackageVersionPurposenext15.xApp Router, Server Components, API routesreact / react-dom19.xUI renderingtypescript5.xType safety across the whole projecttailwindcss4.xUtility-first styling
+7.2  Authentication
+PackageVersionPurpose@clerk/nextjslatestAuth provider - ClerkProvider, auth(), useUser()
+7.3  Database
+PackageVersionPurposedrizzle-ormlatestType-safe ORM - schema definition and queriesdrizzle-kitlatestCLI tool - push schema to Neon, generate migrations@neondatabase/serverlesslatestNeon serverless PostgreSQL driver for Edge/Serverless
+7.4  Gemini AI
+PackageVersionPurpose@google/genailatestNew official Google GenAI SDK (replaces deprecated @google/generative-ai)
+Important  The legacy @google/generative-ai and google-generativeai SDKs are deprecated. Use @google/genai (the new unified SDK) for all Gemini API calls including the token exchange for ephemeral tokens.
+7.5  PDF Generation
+PackageVersionPurpose@react-pdf/rendererlatestGenerate styled PDF session reports server-side@vercel/bloblatestUpload and serve PDF files from Vercel Blob storage
+7.6  Dev Tools
+PackageVersionPurposedrizzle-kitlatestDatabase migrations and schema push (devDependency)eslint / eslint-config-nextlatestLinting (comes with create-next-app)
+7.7  Install Command
+npm install  npm install @clerk/nextjs drizzle-orm @neondatabase/serverless @google/genai @react-pdf/renderer @vercel/blob
+npm install -D  npm install -D drizzle-kit
+8. Key Technical Facts Before Coding
+8.1  Model - gemini-3.1-flash-live-preview
+• This is Google's latest and recommended model for all Gemini Live API use cases as of April 2026.
+• All older models (gemini-2.0-flash-live-001, gemini-live-2.5-flash-preview, gemini-2.5-flash-native-audio-preview-12-2025) are deprecated and shutting down.
+• 128k context window - can hold very long tutoring sessions without context overflow.
+• Uses thinkingLevel parameter (minimal, low, medium, high) instead of the old thinkingBudget. Default is minimal for lowest latency - keep this default for TutorTalk.
+• A single BidiGenerateContentServerContent event can now contain multiple content parts simultaneously (audio + transcript in the same event). Your message handler must process all parts in each event.
+
+8.2  Audio Format Specifications
+• Input (mic to Gemini): 16-bit PCM, 16kHz sample rate, mono channel.
+• Output (Gemini to browser): 16-bit PCM, 24kHz sample rate, mono channel.
+• Audio is transmitted as Base64-encoded strings inside JSON messages - never raw binary over the WebSocket.
+• Any deviation from these specs (wrong sample rate, stereo instead of mono, wrong bit depth) causes garbled or silent audio with no clear error.
+
+8.3  AudioWorklet vs ScriptProcessorNode
+• Always use AudioWorkletProcessor - ScriptProcessorNode is deprecated and runs on the main thread, causing UI jank and dropped audio under load.
+• AudioWorklet files must be served from a public-accessible URL, not imported as ES modules.
+• Place worklet files in the Next.js public/worklets/ folder and reference them as "/worklets/capture-processor.js".
+
+8.4  AudioContext Autoplay Policy
+• Browsers block AudioContext creation until a user gesture (button click).
+• Never initialize AudioContext on component mount or useEffect - it will fail silently in Chrome.
+• Initialize AudioContext inside the onClick handler of your Start Session button.
+
+8.5  WebSocket Message Types - Critical Distinction
+• realtimeInput - use this for streaming audio chunks during a live conversation.
+• clientContent (send_client_content) - only for seeding initial context history at session start, not for live audio streaming.
+• toolResponse - use this when responding to function calls from the model.
+• Mixing up realtimeInput and clientContent is a common bug that causes the model to not respond.
+
+8.6  Ephemeral Token Lifecycle
+• Ephemeral tokens are short-lived and single-session - never reuse across sessions.
+• Generate a fresh token on every session start by calling /api/token each time.
+• Never hardcode or cache tokens on the client side beyond the current session.
+
+8.7  Transcript Capture
+• Listen for inputTranscription events: these contain the student's speech as text.
+• Listen for outputTranscription events: these contain the AI's spoken words as text.
+• Build a running transcript array throughout the session for the post-session PDF.
+• Transcription comes alongside audio chunks - handle both in the same onmessage handler.
+
+8.8  Vercel Compatibility
+• The /api/token route is a standard serverless function (sub-second execution) - no timeout concerns.
+• The /api/session/save and /api/session/report routes are also standard REST routes - no streaming needed.
+• Vercel never handles any WebSocket audio traffic - the browser connects directly to Google.
+• No special Vercel plan or configuration is required. The free/hobby tier works for development.
+
+8.9  Google Search Grounding Specifics
+Sourced from Google official documentation (April 2026):
+• Enable by adding { "google_search": {} } to the tools array in the WebSocket setup message.
+• Gemini automatically decides when to trigger a search - you do not control this per-turn.
+• Billing is per search query executed, not per session or per message.
+• Gemini 3 models (including gemini-3.1-flash-live-preview) support combining Google Search with custom function calling in the same session.
+• The model's base knowledge has a January 2025 cutoff. Google Search grounding bridges this gap for current information.
+
+9. Common Errors and Fixes
+ErrorFixWebSocket closes immediatelyCheck GEMINI_API_KEY is valid, Live API is enabled in Google AI Studio, and model string is exactly "gemini-3.1-flash-live-preview".Audio sounds garbled/choppyInput must be PCM16 at exactly 16kHz mono. Check you are not double-encoding. Confirm AudioWorklet outputs Int16Array, not Float32Array.AI does not respond to voiceEnsure you are using realtimeInput (not clientContent) for audio chunks. Verify Base64 encoding is correct.AudioContext blocked silentlyMove AudioContext initialization inside the button onClick handler - not in useEffect or component body.AudioWorklet fails to loadWorklet file must be in Next.js public/ folder and referenced as an absolute path: "/worklets/filename.js".Missing transcript eventsA single server event can contain multiple parts (audio + transcript). Loop through all parts in every message - do not stop at the first part.PDF generation fails on Vercel@react-pdf/renderer runs server-side. Ensure it is a regular dependency (not devDependency) and tested in a Node.js API route context.
+10. Recommended Folder Structure
+Project Root  tutortalk/ ├── public/ │   └── worklets/ │       └── capture-processor.js     ← AudioWorklet (must be in public/) ├── src/ │   ├── app/ │   │   ├── layout.tsx               ← ClerkProvider wraps everything │   │   ├── page.tsx                 ← Landing / marketing page │   │   ├── dashboard/ │   │   │   └── page.tsx             ← Past sessions list │   │   ├── session/ │   │   │   └── page.tsx             ← Live voice session UI │   │   └── api/ │   │       ├── token/route.ts       ← Ephemeral token endpoint │   │       ├── session/ │   │       │   ├── save/route.ts    ← Save session + transcript │   │       │   └── report/route.ts  ← Generate + upload PDF │   │       └── auth/sync/route.ts   ← Lazy Clerk→Neon user sync │   ├── components/ │   │   ├── SessionControls.tsx      ← Start/End session buttons │   │   ├── AudioVisualizer.tsx      ← Waveform display │   │   ├── TranscriptPanel.tsx      ← Live transcript view │   │   └── SubjectPicker.tsx        ← Subject selection UI │   ├── db/ │   │   ├── index.ts                 ← Neon client + db instance │   │   └── schema.ts                ← Drizzle table definitions │   └── lib/ │       ├── audioQueue.ts            ← Playback queue manager │       └── websocket.ts             ← WebSocket connection logic ├── drizzle.config.ts ├── middleware.ts                    ← Clerk route protection └── .env.local
+11. Summary
+TutorTalk is a production-grade voice AI tutor that is fully buildable on your existing stack without any new infrastructure beyond Gemini Live API. The browser-direct WebSocket approach - secured by ephemeral tokens - is Google's officially recommended pattern for browser-based voice apps and gives the lowest possible latency.
+
+The combination of Socratic system instructions, Google Search grounding for up-to-date information, and automatic PDF session reports creates a genuinely differentiated product. It solves a real problem (tutor access gap), targets a massive market (students across India and globally), and demonstrates a technically advanced skill set - live WebSocket audio, AudioWorklet processing, and real-time AI - that very few developers have shipped in production.
+
+This project, added to your existing portfolio of NewsPulseAI, DueMate, and ActaFlow, positions you as an AI automation developer who has shipped across the full spectrum: async background jobs, webhook-driven workflows, and now real-time bidirectional voice AI.
+
+End of Document
+TutorTalk - Live Voice AI Tutor	Architecture & Build Guide
+
+Narendra  •  nk-analytics	
+
