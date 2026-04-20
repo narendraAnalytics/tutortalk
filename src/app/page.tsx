@@ -2,7 +2,7 @@
 
 import { useEffect, useState } from 'react';
 import Link from 'next/link';
-import { SignInButton, SignUpButton, UserButton, useAuth } from '@clerk/nextjs';
+import { SignInButton, SignUpButton, UserButton, useAuth, useUser } from '@clerk/nextjs';
 import VoiceOrb from '@/components/VoiceOrb';
 
 const SUBJECTS = [
@@ -84,6 +84,7 @@ const STATE_DOT: Record<string, string> = {
 
 export default function LandingPage() {
   const { isSignedIn } = useAuth();
+  const { user } = useUser();
   const [orbState, setOrbState] = useState<'idle' | 'listening' | 'speaking' | 'interrupted'>('idle');
 
   useEffect(() => {
@@ -117,18 +118,11 @@ export default function LandingPage() {
               <UserButton />
             </>
           ) : (
-            <>
-              <SignInButton>
-                <button style={{ color: '#993C1D', fontWeight: 500, background: 'none', border: 'none', cursor: 'pointer', fontSize: 15, opacity: 0.85, fontFamily: 'var(--font-poppins)' }}>
-                  Sign in
-                </button>
-              </SignInButton>
-              <SignUpButton>
-                <button className="cta-btn" style={{ color: '#FFFBF7', padding: '11px 28px', borderRadius: 99, border: 'none', cursor: 'pointer', fontWeight: 700, fontSize: 14, fontFamily: 'var(--font-poppins)' }}>
-                  Get started
-                </button>
-              </SignUpButton>
-            </>
+            <SignInButton>
+              <button className="cta-btn" style={{ color: '#FFFBF7', padding: '11px 28px', borderRadius: 99, border: 'none', cursor: 'pointer', fontWeight: 700, fontSize: 14, fontFamily: 'var(--font-poppins)' }}>
+                Sign in
+              </button>
+            </SignInButton>
           )}
         </div>
       </nav>
@@ -140,10 +134,17 @@ export default function LandingPage() {
         <div style={{ position: 'absolute', top: '35%', left: '3%', width: 360, height: 360, borderRadius: '50%', background: 'radial-gradient(circle, rgba(29,158,117,0.06) 0%, transparent 65%)', animation: 'blob-drift 13s ease-in-out 2s infinite', pointerEvents: 'none', zIndex: 0 }} />
 
         <div style={{ position: 'relative', zIndex: 1, display: 'flex', flexDirection: 'column', alignItems: 'center' }}>
-          <div style={{ display: 'inline-flex', alignItems: 'center', gap: 8, background: '#FAECE7', borderRadius: 99, padding: '8px 22px', marginBottom: 36 }}>
-            <div className="live-dot" style={{ width: 8, height: 8, borderRadius: '50%', background: '#D4537E', flexShrink: 0 }} />
-            <span style={{ color: '#D85A30', fontWeight: 600, fontSize: 13, letterSpacing: '0.2px' }}>Socratic AI tutoring · Live voice</span>
-          </div>
+          {isSignedIn && user ? (
+            <div style={{ display: 'inline-flex', alignItems: 'center', gap: 10, background: '#FAECE7', borderRadius: 99, padding: '10px 24px', marginBottom: 36 }}>
+              <span style={{ fontSize: 18 }}>👋</span>
+              <span style={{ color: '#D85A30', fontWeight: 700, fontSize: 14 }}>Welcome back, {user.firstName ?? user.username ?? 'there'}!</span>
+            </div>
+          ) : (
+            <div style={{ display: 'inline-flex', alignItems: 'center', gap: 8, background: '#FAECE7', borderRadius: 99, padding: '8px 22px', marginBottom: 36 }}>
+              <div className="live-dot" style={{ width: 8, height: 8, borderRadius: '50%', background: '#D4537E', flexShrink: 0 }} />
+              <span style={{ color: '#D85A30', fontWeight: 600, fontSize: 13, letterSpacing: '0.2px' }}>Socratic AI tutoring · Live voice</span>
+            </div>
+          )}
 
           <h1 style={{ fontSize: 'clamp(48px, 7vw, 82px)', fontWeight: 800, lineHeight: 1.08, maxWidth: 820, marginBottom: 28, letterSpacing: '-2px', fontFamily: 'var(--font-poppins)' }}>
             <span className="gradient-text">Ask anything.</span><br />
@@ -160,15 +161,12 @@ export default function LandingPage() {
                 Start learning free
               </Link>
             ) : (
-              <SignUpButton>
+              <SignInButton>
                 <button className="cta-btn" style={{ color: '#FFFBF7', padding: '18px 50px', borderRadius: 99, border: 'none', cursor: 'pointer', fontWeight: 700, fontSize: 18, fontFamily: 'var(--font-poppins)', letterSpacing: '-0.3px' }}>
                   Start learning free
                 </button>
-              </SignUpButton>
+              </SignInButton>
             )}
-            <Link href="/dashboard" style={{ color: '#993C1D', padding: '18px 32px', borderRadius: 99, border: '2px solid rgba(216,90,48,0.22)', textDecoration: 'none', fontWeight: 600, fontSize: 16, fontFamily: 'var(--font-poppins)' }}>
-              See dashboard →
-            </Link>
           </div>
 
           <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', gap: 20 }}>
