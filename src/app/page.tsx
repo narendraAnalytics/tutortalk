@@ -96,6 +96,20 @@ export default function LandingPage() {
     return () => clearInterval(t);
   }, []);
 
+  // Sync signed-in Clerk user to Neon — fires once user data is available after sign-in
+  useEffect(() => {
+    if (isSignedIn && user) {
+      fetch('/api/auth/sync', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          email: user.emailAddresses[0]?.emailAddress ?? '',
+          name: [user.firstName, user.lastName].filter(Boolean).join(' ') || null,
+        }),
+      });
+    }
+  }, [isSignedIn, user]);
+
   return (
     <div className="page-in" style={{ minHeight: '100vh', background: '#FFFBF7', overflowX: 'hidden' }}>
 

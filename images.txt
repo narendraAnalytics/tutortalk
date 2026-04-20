@@ -1,1 +1,15 @@
-logo url : https://res.cloudinary.com/dkqbzwicr/image/upload/q_auto/f_auto/v1776668144/logotutortalk_ecmdbm.png
+The voice session has a hard dependency chain:                                                                                                                                                                                                                                        
+  Browser → POST /api/token → (Clerk auth check → ephemeral token)                                                                                                                                                                                                                      
+  The /api/token route must verify the user is authenticated in Clerk and synced to Neon before it issues a Gemini token. Without the DB and   that API route, the voice page has nothing to connect to.                                                                                
+                                                                                                                                            
+  Correct order:
+
+  1. Neon DB — create schema.ts, db/index.ts, drizzle.config.ts, run drizzle-kit push to create the 3 tables (users, sessions, reports)
+  2. API Routes — /api/auth/sync (Clerk→Neon user upsert), then /api/token (the critical one — verifies Clerk session, calls Google to get
+  an ephemeral token, returns it to the browser)
+  3. AudioWorklet — public/worklets/capture-processor.js (Float32 → Int16 mic capture)
+  4. Voice session page — WebSocket to Gemini Live, audio in/out, transcript capture
+  5. Session save + PDF — /api/session/save, /api/session/report (Gemini text → PDF → Cloudinary)
+
+  Bottom line: You can't hear the AI speak without the token endpoint, and the token endpoint needs the DB. Database is the foundation —
+  everything else sits on top of it.

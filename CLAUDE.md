@@ -1,12 +1,76 @@
 ### Skill
 For ALL frontend/UI work — landing page, dashboard, components, emails — use the skill at:
 `C:\Users\ES\.claude\skills\nextstack.skill`
+
 ---
-### Deployed In Vercel :
 
-      https://tutortalk.vercel.app/
+### Deployed In Vercel
+**URL:** https://tutortalk.vercel.app/
 
----- 
+---
+
+## What Has Been Built (Session Log)
+
+### Session 1 — Packages & Config
+- Installed all required packages (Clerk, Drizzle, Neon, Framer Motion, Lucide, Zod, etc.)
+- Updated `CLAUDE.md` with full project spec
+
+### Session 3 — Database, Sync & Middleware Fix
+
+**Files created:**
+- `src/db/schema.ts` — `users`, `sessions`, `reports` tables via Drizzle ORM. `clerk_id` is `varchar(255)` (Clerk IDs are strings like `user_xxxxxxx`, NOT UUIDs)
+- `src/db/index.ts` — Neon HTTP client + Drizzle db instance export
+- `drizzle.config.ts` — points to schema, reads `DATABASE_URL` from `.env`
+- `src/app/api/auth/sync/route.ts` — POST endpoint that upserts Clerk user into Neon. Accepts `{ email, name }` in request body — does NOT call `currentUser()` to avoid a second Clerk API round-trip
+- `src/middleware.ts` — Clerk middleware moved here from root (see bug fix below)
+
+**Files modified:**
+- `src/app/page.tsx` — Added `useEffect` that calls `POST /api/auth/sync` with user data from `useUser()` as soon as `isSignedIn && user` is true. Fires immediately on landing after sign-up/sign-in
+- `src/app/dashboard/page.tsx` — Added inline Neon upsert as a fallback sync on dashboard visit
+
+**Schema pushed to Neon:** `npx drizzle-kit push` — all 3 tables live
+
+**Bugs fixed this session:**
+
+| Bug | Root Cause | Fix |
+|-----|-----------|-----|
+| Users table empty after Clerk sign-up | Sync only ran on dashboard visit, not on landing page | Added `useEffect` in `page.tsx` to call `/api/auth/sync` immediately after sign-in |
+| `/api/auth/sync` returning 500 — `currentUser()` failing silently | `currentUser()` makes a second server→Clerk API call that was failing in local dev | Removed `currentUser()`. Client sends `email`+`name` in POST body (from `useUser()`), server only calls `auth()` to verify session |
+| `Clerk: clerkMiddleware() was not run` — 500 on all auth checks | `middleware.ts` was at project root `./middleware.ts` but Next.js with `src/` layout requires it at `./src/middleware.ts` | Moved middleware to `src/middleware.ts`, deleted root-level file |
+
+**Key lesson:** With a `src/` directory layout in Next.js, middleware MUST be at `src/middleware.ts` — placing it at the project root silently breaks all Clerk auth in API routes.
+
+---
+
+### Session 2 — Landing Page & Dashboard
+**Files created/modified:**
+- `src/app/globals.css` — Added TutorTalk design tokens + all keyframe animations (orb-breathe, orb-speak, pulse-ring, teal-ring, amber-flash, blob-drift, float-y, chip-float, live-pulse, gradient-shift, eq-wave, page-fade) + utility classes (`.cta-btn`, `.gradient-text`, `.live-dot`, `.eq-bar`, `.page-in`)
+- `src/app/layout.tsx` — Added Poppins font (weights 400–800) alongside Inter; added Cloudinary logo as favicon via `metadata.icons`; `favicon.ico` replaced with actual logo PNG
+- `src/components/VoiceOrb.tsx` — Animated voice orb component (idle/listening/speaking/interrupted states), EQ bars, pulse rings
+- `src/app/page.tsx` — Full landing page (Client Component): animated hero orb cycling through states, welcome-back message for signed-in users, subject chips, 3-column features, testimonials with float animation, gradient footer CTA. Uses `useAuth` + `useUser` from Clerk. No black/white/blue colors anywhere.
+- `src/app/dashboard/page.tsx` — Server Component fetching `currentUser()` from Clerk, redirects to `/` if not authenticated
+- `src/app/dashboard/DashboardClient.tsx` — Dashboard UI: metric cards (Total sessions, Topics covered, Minutes learned), past sessions list with Download PDF toggle, bottom CTA card
+
+**Auth integration:**
+- Nav shows Sign in button (logged out) or Dashboard link + New session + UserButton (logged in)
+- Hero shows "Welcome back, {firstName}!" pill when signed in
+- Clerk version is v7 — uses `useAuth`, `useUser`, `SignInButton`, `SignUpButton`, `UserButton` (no `SignedIn`/`SignedOut` components — they don't exist in v7)
+- `currentUser()` from `@clerk/nextjs/server` used in Server Components
+
+**Design rules enforced (no exceptions):**
+- Background: `#FFFBF7` warm cream
+- Headings: `#4A1B0C` dark warm brown
+- Body text: `#993C1D` warm brown
+- Primary buttons: gradient `#D85A30 → #EF9F27` (`.cta-btn` class)
+- Button text: `#FFFBF7` on gradient — never pure white/black/blue
+- Cards: `#FFF8F3` warm off-white surface
+
+**Logo:**
+- Cloudinary URL: `https://res.cloudinary.com/dkqbzwicr/image/upload/q_auto/f_auto/v1776668144/logotutortalk_ecmdbm.png`
+- Used in nav (both landing + dashboard) as `<img>` tag
+- Also used as `favicon.ico` (PNG downloaded and saved over the default Next.js favicon)
+
+---
 
 
 # TutorTalk — Live Voice AI Tutor
@@ -157,11 +221,11 @@ tutortalk/
 │   ├── db/
 │   │   ├── index.ts                  ← Neon client + Drizzle db instance
 │   │   └── schema.ts                 ← Table definitions
-│   └── lib/
-│       ├── audioQueue.ts             ← Playback queue manager (gapless audio)
-│       └── websocket.ts              ← WebSocket connection + message handlers
+│   ├── lib/
+│   │   ├── audioQueue.ts             ← Playback queue manager (gapless audio)
+│   │   └── websocket.ts              ← WebSocket connection + message handlers
+│   └── middleware.ts                 ← Clerk route protection (MUST be in src/, not root)
 ├── drizzle.config.ts
-├── middleware.ts                     ← Clerk route protection
 └── .env                              ← Environment variables (NOT .env.local)
 ```
 

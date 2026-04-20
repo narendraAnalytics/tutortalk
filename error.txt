@@ -1,0 +1,12 @@
+⨯ Error: Clerk: clerkMiddleware() was not run, your middleware or proxy file might be misplaced. Move your middleware or proxy file to ./src/middleware.ts. Currently located at ./middleware.ts
+    at async POST (src\app\api\auth\sync\route.ts:8:22)
+   6 |
+   7 | export async function POST(req: NextRequest) {
+>  8 |   const { userId } = await auth();
+     |                      ^
+   9 |   if (!userId) {
+  10 |     return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
+  11 |   }
+ POST /api/auth/sync 500 in 1283ms (next.js: 653ms, application-code: 630ms)
+
+ Crystal clear. The middleware is at ./middleware.ts but with a src/ project it must be at ./src/middleware.ts.
