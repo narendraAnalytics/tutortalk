@@ -23,6 +23,7 @@ export const reports = pgTable("reports", {
   id: uuid("id").primaryKey().defaultRandom(),
   sessionId: uuid("session_id").references(() => sessions.id),
   pdfUrl: text("pdf_url").notNull(),
+  pdfData: text("pdf_data"),
   summary: text("summary"),
   generatedAt: timestamp("generated_at").defaultNow(),
 });

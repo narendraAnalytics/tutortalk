@@ -13,3 +13,7 @@ The voice session has a hard dependency chain:
 
   Bottom line: You can't hear the AI speak without the token endpoint, and the token endpoint needs the DB. Database is the foundation —
   everything else sits on top of it.
+
+ Crystal clear. The middleware is at ./middleware.ts but with a src/ project it must be at ./src/middleware.ts.
+
+ https://github.com/jaydanurwin/gemini-live-agent-demo

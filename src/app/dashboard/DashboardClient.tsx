@@ -1,50 +1,81 @@
 'use client';
 
-import { useState } from 'react';
+import { useEffect } from 'react';
+import { useRouter } from 'next/navigation';
 import Link from 'next/link';
+import type { SessionRow } from './page';
 
-const SESSIONS = [
-  { subject: 'Math',      sc: '#D85A30', sb: '#FAECE7', topic: 'Derivatives — Power Rule',        date: 'Apr 18, 2026', dur: '22 min', msgs: 9  },
-  { subject: 'Physics',   sc: '#1D9E75', sb: '#E0F5EE', topic: "Newton's Second Law",              date: 'Apr 16, 2026', dur: '34 min', msgs: 14 },
-  { subject: 'Chemistry', sc: '#7F77DD', sb: '#EEEDFE', topic: 'Ionic Bonds & Electron Sharing',   date: 'Apr 14, 2026', dur: '18 min', msgs: 7  },
-  { subject: 'English',   sc: '#D4537E', sb: '#FCE9EF', topic: 'Metaphor vs Simile in Poetry',     date: 'Apr 11, 2026', dur: '28 min', msgs: 11 },
-  { subject: 'Biology',   sc: '#C47A14', sb: '#FEF3E2', topic: 'Mitosis vs Meiosis',               date: 'Apr 9,  2026', dur: '41 min', msgs: 17 },
-];
+const SUBJECT_STYLE: Record<string, { bg: string; color: string }> = {
+  Math:      { bg: '#FAECE7', color: '#D85A30' },
+  Physics:   { bg: '#E0F5EE', color: '#1D9E75' },
+  Chemistry: { bg: '#EEEDFE', color: '#7F77DD' },
+  Biology:   { bg: '#FEF3E2', color: '#C47A14' },
+  English:   { bg: '#FCE9EF', color: '#D4537E' },
+  History:   { bg: '#F0EDF9', color: '#6B5DB0' },
+};
 
-const METRICS = [
-  {
-    label: 'Total sessions', value: '12', bg: '#FAECE7', color: '#D85A30',
-    icon: <svg width="28" height="28" viewBox="0 0 24 24" fill="none"><rect x="9" y="2" width="6" height="12" rx="3" fill="#D85A30"/><path d="M5 10c0 3.866 3.134 7 7 7s7-3.134 7-7" stroke="#D85A30" strokeWidth="2.2" strokeLinecap="round"/><line x1="12" y1="17" x2="12" y2="21" stroke="#D85A30" strokeWidth="2.2" strokeLinecap="round"/></svg>,
-  },
-  {
-    label: 'Topics covered', value: '34', bg: '#EEEDFE', color: '#7F77DD',
-    icon: <svg width="28" height="28" viewBox="0 0 24 24" fill="none"><rect x="4" y="3" width="16" height="18" rx="3" stroke="#7F77DD" strokeWidth="2"/><line x1="8" y1="8" x2="16" y2="8" stroke="#7F77DD" strokeWidth="1.8" strokeLinecap="round"/><line x1="8" y1="12" x2="16" y2="12" stroke="#7F77DD" strokeWidth="1.8" strokeLinecap="round"/><line x1="8" y1="16" x2="12" y2="16" stroke="#7F77DD" strokeWidth="1.8" strokeLinecap="round"/></svg>,
-  },
-  {
-    label: 'Minutes learned', value: '287', bg: '#E0F5EE', color: '#1D9E75',
-    icon: <svg width="28" height="28" viewBox="0 0 24 24" fill="none"><circle cx="12" cy="12" r="9" stroke="#1D9E75" strokeWidth="2"/><polyline points="12 7 12 12 15 15" stroke="#1D9E75" strokeWidth="2.2" strokeLinecap="round" strokeLinejoin="round"/></svg>,
-  },
-];
+function subjectStyle(subject: string) {
+  return SUBJECT_STYLE[subject] ?? { bg: '#F2E4DB', color: '#993C1D' };
+}
+
+function fmtDate(iso: string) {
+  return new Date(iso).toLocaleDateString('en-IN', { day: 'numeric', month: 'short', year: 'numeric' });
+}
+
+function fmtDur(secs: number) {
+  const m = Math.floor(secs / 60);
+  return m < 1 ? '< 1 min' : `${m} min`;
+}
 
 const DownloadIcon = () => (
   <svg width="13" height="13" viewBox="0 0 24 24" fill="none">
-    <path d="M21 15v4a2 2 0 01-2 2H5a2 2 0 01-2-2v-4" stroke="#D85A30" strokeWidth="2" strokeLinecap="round"/>
-    <polyline points="7 10 12 15 17 10" stroke="#D85A30" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"/>
-    <line x1="12" y1="15" x2="12" y2="3" stroke="#D85A30" strokeWidth="2" strokeLinecap="round"/>
+    <path d="M21 15v4a2 2 0 01-2 2H5a2 2 0 01-2-2v-4" stroke="currentColor" strokeWidth="2" strokeLinecap="round"/>
+    <polyline points="7 10 12 15 17 10" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"/>
+    <line x1="12" y1="15" x2="12" y2="3" stroke="currentColor" strokeWidth="2" strokeLinecap="round"/>
   </svg>
 );
 
-const CheckIcon = () => (
-  <svg width="13" height="13" viewBox="0 0 24 24" fill="none">
-    <path d="M5 13l4 4L19 7" stroke="#1D9E75" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round"/>
+const SpinnerIcon = () => (
+  <svg width="13" height="13" viewBox="0 0 24 24" fill="none" style={{ animation: 'spin 1s linear infinite' }}>
+    <circle cx="12" cy="12" r="9" stroke="currentColor" strokeWidth="2" strokeDasharray="28" strokeDashoffset="10"/>
   </svg>
 );
 
-export default function DashboardClient({ firstName }: { firstName: string }) {
-  const [downloadedIdx, setDownloadedIdx] = useState<number | null>(null);
+type Props = {
+  firstName: string;
+  sessions: SessionRow[];
+  totalSessions: number;
+  totalMinutes: number;
+  topicsCovered: number;
+};
 
+export default function DashboardClient({ firstName, sessions, totalSessions, totalMinutes, topicsCovered }: Props) {
+  const router = useRouter();
   const hour = new Date().getHours();
   const greeting = hour < 12 ? 'Good morning' : hour < 17 ? 'Good afternoon' : 'Good evening';
+
+  // Poll every 4 s while any session is still generating its PDF
+  const hasPending = sessions.some(s => s.pdfUrl === null);
+  useEffect(() => {
+    if (!hasPending) return;
+    const id = setInterval(() => router.refresh(), 4000);
+    return () => clearInterval(id);
+  }, [hasPending, router]);
+
+  const METRICS = [
+    {
+      label: 'Total sessions', value: String(totalSessions), bg: '#FAECE7', color: '#D85A30',
+      icon: <svg width="28" height="28" viewBox="0 0 24 24" fill="none"><rect x="9" y="2" width="6" height="12" rx="3" fill="#D85A30"/><path d="M5 10c0 3.866 3.134 7 7 7s7-3.134 7-7" stroke="#D85A30" strokeWidth="2.2" strokeLinecap="round"/><line x1="12" y1="17" x2="12" y2="21" stroke="#D85A30" strokeWidth="2.2" strokeLinecap="round"/></svg>,
+    },
+    {
+      label: 'Subjects explored', value: String(topicsCovered), bg: '#EEEDFE', color: '#7F77DD',
+      icon: <svg width="28" height="28" viewBox="0 0 24 24" fill="none"><rect x="4" y="3" width="16" height="18" rx="3" stroke="#7F77DD" strokeWidth="2"/><line x1="8" y1="8" x2="16" y2="8" stroke="#7F77DD" strokeWidth="1.8" strokeLinecap="round"/><line x1="8" y1="12" x2="16" y2="12" stroke="#7F77DD" strokeWidth="1.8" strokeLinecap="round"/><line x1="8" y1="16" x2="12" y2="16" stroke="#7F77DD" strokeWidth="1.8" strokeLinecap="round"/></svg>,
+    },
+    {
+      label: 'Minutes learned', value: String(totalMinutes), bg: '#E0F5EE', color: '#1D9E75',
+      icon: <svg width="28" height="28" viewBox="0 0 24 24" fill="none"><circle cx="12" cy="12" r="9" stroke="#1D9E75" strokeWidth="2"/><polyline points="12 7 12 12 15 15" stroke="#1D9E75" strokeWidth="2.2" strokeLinecap="round" strokeLinejoin="round"/></svg>,
+    },
+  ];
 
   return (
     <div className="page-in" style={{ minHeight: '100vh', background: '#FFFBF7' }}>
@@ -65,9 +96,13 @@ export default function DashboardClient({ firstName }: { firstName: string }) {
         {/* ── Greeting ── */}
         <div style={{ marginBottom: 44 }}>
           <h1 style={{ fontSize: 38, fontWeight: 800, color: '#4A1B0C', letterSpacing: '-1px', marginBottom: 8, fontFamily: 'var(--font-poppins)' }}>
-            {greeting}, {firstName}! ☀️
+            {greeting}, {firstName}!
           </h1>
-          <p style={{ color: '#993C1D', fontSize: 16, opacity: 0.8 }}>You&apos;ve been on a great streak — 5 sessions this week!</p>
+          <p style={{ color: '#993C1D', fontSize: 16, opacity: 0.8 }}>
+            {totalSessions === 0
+              ? 'Start your first session and begin learning today.'
+              : `You have completed ${totalSessions} session${totalSessions !== 1 ? 's' : ''} — keep it up!`}
+          </p>
         </div>
 
         {/* ── Metric cards ── */}
@@ -93,38 +128,72 @@ export default function DashboardClient({ firstName }: { firstName: string }) {
         <div>
           <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 20 }}>
             <h2 style={{ fontSize: 22, fontWeight: 700, color: '#4A1B0C', letterSpacing: '-0.4px', fontFamily: 'var(--font-poppins)' }}>Past sessions</h2>
-            <span style={{ fontSize: 13, color: '#993C1D', opacity: 0.5 }}>{SESSIONS.length} sessions</span>
+            <span style={{ fontSize: 13, color: '#993C1D', opacity: 0.5 }}>{totalSessions} session{totalSessions !== 1 ? 's' : ''}</span>
           </div>
 
-          <div style={{ display: 'flex', flexDirection: 'column', gap: 12 }}>
-            {SESSIONS.map((s, i) => (
-              <div key={i}
-                style={{ background: '#FFF8F3', borderRadius: 16, padding: '18px 22px', display: 'flex', alignItems: 'center', gap: 18, boxShadow: '0 2px 16px rgba(216,90,48,0.06)', transition: 'transform .2s, box-shadow .2s', cursor: 'pointer' }}
-                onMouseEnter={e => { (e.currentTarget as HTMLDivElement).style.transform = 'translateX(5px)'; (e.currentTarget as HTMLDivElement).style.boxShadow = '0 6px 32px rgba(216,90,48,0.10)'; }}
-                onMouseLeave={e => { (e.currentTarget as HTMLDivElement).style.transform = ''; (e.currentTarget as HTMLDivElement).style.boxShadow = '0 2px 16px rgba(216,90,48,0.06)'; }}
-              >
-                <div style={{ background: s.sb, color: s.sc, padding: '6px 18px', borderRadius: 99, fontWeight: 700, fontSize: 13, flexShrink: 0, letterSpacing: '0.1px', fontFamily: 'var(--font-poppins)' }}>
-                  {s.subject}
-                </div>
-                <div style={{ flex: 1, minWidth: 0 }}>
-                  <div style={{ fontWeight: 600, color: '#4A1B0C', fontSize: 14.5, whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>{s.topic}</div>
-                  <div style={{ fontSize: 12, color: '#993C1D', opacity: 0.6, marginTop: 3 }}>{s.date} · {s.dur} · {s.msgs} exchanges</div>
-                </div>
-                <button
-                  onClick={() => setDownloadedIdx(i)}
-                  style={{
-                    background: downloadedIdx === i ? '#E0F5EE' : '#FAECE7',
-                    color:      downloadedIdx === i ? '#1D9E75' : '#D85A30',
-                    padding: '8px 20px', borderRadius: 99, border: 'none', cursor: 'pointer',
-                    fontWeight: 700, fontSize: 12.5, fontFamily: 'var(--font-poppins)', flexShrink: 0,
-                    transition: 'all .25s', display: 'flex', alignItems: 'center', gap: 6,
-                  }}
-                >
-                  {downloadedIdx === i ? <><CheckIcon /> Saved!</> : <><DownloadIcon /> Download PDF</>}
-                </button>
-              </div>
-            ))}
-          </div>
+          {sessions.length === 0 ? (
+            <div style={{ background: '#FFF8F3', borderRadius: 16, padding: '48px 24px', textAlign: 'center', border: '1.5px dashed #F2E4DB' }}>
+              <p style={{ color: '#993C1D', fontSize: 16, fontWeight: 600, marginBottom: 8 }}>No sessions yet</p>
+              <p style={{ color: '#C4A99A', fontSize: 14, marginBottom: 20 }}>Start your first session to see it here.</p>
+              <Link href="/session" className="cta-btn" style={{ textDecoration: 'none', padding: '12px 32px', borderRadius: 99, color: '#FFFBF7', fontWeight: 700, fontSize: 14 }}>
+                Start a session
+              </Link>
+            </div>
+          ) : (
+            <div style={{ display: 'flex', flexDirection: 'column', gap: 12 }}>
+              {sessions.map(s => {
+                const st = subjectStyle(s.subject);
+                return (
+                  <div key={s.id}
+                    style={{ background: '#FFF8F3', borderRadius: 16, padding: '18px 22px', display: 'flex', alignItems: 'center', gap: 18, boxShadow: '0 2px 16px rgba(216,90,48,0.06)', transition: 'transform .2s, box-shadow .2s' }}
+                    onMouseEnter={e => { (e.currentTarget as HTMLDivElement).style.transform = 'translateX(5px)'; (e.currentTarget as HTMLDivElement).style.boxShadow = '0 6px 32px rgba(216,90,48,0.10)'; }}
+                    onMouseLeave={e => { (e.currentTarget as HTMLDivElement).style.transform = ''; (e.currentTarget as HTMLDivElement).style.boxShadow = '0 2px 16px rgba(216,90,48,0.06)'; }}
+                  >
+                    {/* Subject badge */}
+                    <div style={{ background: st.bg, color: st.color, padding: '6px 18px', borderRadius: 99, fontWeight: 700, fontSize: 13, flexShrink: 0, fontFamily: 'var(--font-poppins)' }}>
+                      {s.subject}
+                    </div>
+
+                    {/* Session info */}
+                    <div style={{ flex: 1, minWidth: 0 }}>
+                      <div style={{ fontWeight: 600, color: '#4A1B0C', fontSize: 14.5, whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>
+                        {s.preview}
+                      </div>
+                      <div style={{ fontSize: 12, color: '#993C1D', opacity: 0.6, marginTop: 3 }}>
+                        {fmtDate(s.startedAt)} · {fmtDur(s.durationSecs)} · {s.exchangeCount} exchanges
+                      </div>
+                    </div>
+
+                    {/* PDF download / generating state */}
+                    {s.pdfUrl ? (
+                      <a
+                        href={`/api/session/pdf?sessionId=${s.id}`}
+                        style={{
+                          background: '#FAECE7', color: '#D85A30',
+                          padding: '8px 20px', borderRadius: 99, border: 'none', cursor: 'pointer',
+                          fontWeight: 700, fontSize: 12.5, fontFamily: 'var(--font-poppins)', flexShrink: 0,
+                          textDecoration: 'none', display: 'flex', alignItems: 'center', gap: 6, transition: 'background .2s',
+                        }}
+                        onMouseEnter={e => { (e.currentTarget as HTMLAnchorElement).style.background = '#F5D9CF'; }}
+                        onMouseLeave={e => { (e.currentTarget as HTMLAnchorElement).style.background = '#FAECE7'; }}
+                      >
+                        <DownloadIcon /> Download PDF
+                      </a>
+                    ) : (
+                      <span style={{
+                        background: '#F5F4FF', color: '#7F77DD',
+                        padding: '8px 20px', borderRadius: 99,
+                        fontWeight: 600, fontSize: 12.5, fontFamily: 'var(--font-poppins)', flexShrink: 0,
+                        display: 'flex', alignItems: 'center', gap: 6,
+                      }}>
+                        <SpinnerIcon /> Generating…
+                      </span>
+                    )}
+                  </div>
+                );
+              })}
+            </div>
+          )}
         </div>
 
         {/* ── Bottom CTA ── */}
@@ -134,13 +203,14 @@ export default function DashboardClient({ firstName }: { firstName: string }) {
             <div style={{ color: 'rgba(255,251,247,0.82)', fontSize: 14 }}>Pick a subject and start learning right now.</div>
           </div>
           <Link href="/session"
-            style={{ background: '#FFFBF7', color: '#D85A30', padding: '14px 36px', borderRadius: 99, textDecoration: 'none', fontWeight: 800, fontSize: 15, fontFamily: 'var(--font-poppins)', flexShrink: 0, transition: 'transform .2s, box-shadow .2s', display: 'inline-block' }}
-            onMouseEnter={e => { (e.currentTarget as HTMLAnchorElement).style.transform = 'scale(1.05)'; (e.currentTarget as HTMLAnchorElement).style.boxShadow = '0 8px 28px rgba(0,0,0,0.14)'; }}
-            onMouseLeave={e => { (e.currentTarget as HTMLAnchorElement).style.transform = ''; (e.currentTarget as HTMLAnchorElement).style.boxShadow = ''; }}
+            style={{ background: '#FFFBF7', color: '#D85A30', padding: '14px 36px', borderRadius: 99, textDecoration: 'none', fontWeight: 800, fontSize: 15, fontFamily: 'var(--font-poppins)', flexShrink: 0, display: 'inline-block' }}
+            onMouseEnter={e => { (e.currentTarget as HTMLAnchorElement).style.transform = 'scale(1.05)'; }}
+            onMouseLeave={e => { (e.currentTarget as HTMLAnchorElement).style.transform = ''; }}
           >
             Start session →
           </Link>
         </div>
+
       </div>
     </div>
   );
