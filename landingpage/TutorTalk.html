@@ -1,0 +1,931 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>TutorTalk — Live Voice AI Tutor</title>
+  <link href="https://fonts.googleapis.com/css2?family=Poppins:wght@400;500;600;700;800&display=swap" rel="stylesheet">
+  <script src="https://cdn.tailwindcss.com"></script>
+  <script src="https://unpkg.com/react@18.3.1/umd/react.development.js" integrity="sha384-hD6/rw4ppMLGNu3tX5cjIb+uRZ7UkRJ6BPkLpg4hAu/6onKUg4lLsHAs9EBPT82L" crossorigin="anonymous"></script>
+  <script src="https://unpkg.com/react-dom@18.3.1/umd/react-dom.development.js" integrity="sha384-u6aeetuaXnQ38mYT8rp6sbXaQe3NL9t+IBXmnYxwkUI2Hw4bsp2Wvmx4yRQF1uAm" crossorigin="anonymous"></script>
+  <script src="https://unpkg.com/@babel/standalone@7.29.0/babel.min.js" integrity="sha384-m08KidiNqLdpJqLq95G/LEi8Qvjl/xUYll3QILypMoQ65QorJ9Lvtp2RXYGBFj1y" crossorigin="anonymous"></script>
+  <style>
+    *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+    body { background: #FFFBF7; font-family: 'Poppins', sans-serif; color: #993C1D; -webkit-font-smoothing: antialiased; }
+
+    .gradient-text {
+      background: linear-gradient(90deg, #D85A30, #EF9F27, #D85A30);
+      background-size: 200% auto;
+      -webkit-background-clip: text;
+      -webkit-text-fill-color: transparent;
+      background-clip: text;
+      animation: shimmer-text 3s linear infinite;
+    }
+    @keyframes shimmer-text {
+      0% { background-position: 0% center; }
+      100% { background-position: 200% center; }
+    }
+    .cta-btn {
+      background: linear-gradient(90deg, #D85A30, #EF9F27, #D85A30);
+      background-size: 200% auto;
+      transition: background-position 0.5s ease, transform 0.18s ease, box-shadow 0.18s ease;
+    }
+    .cta-btn:hover {
+      background-position: right center;
+      transform: scale(1.03);
+      box-shadow: 0 8px 32px rgba(216,90,48,0.35);
+    }
+    @keyframes pulse-ring {
+      0%   { transform: scale(0.92); opacity: 0.65; }
+      100% { transform: scale(2.0);  opacity: 0;    }
+    }
+    @keyframes teal-ring {
+      0%   { transform: scale(0.92); opacity: 0.7; }
+      100% { transform: scale(2.2);  opacity: 0;   }
+    }
+    @keyframes amber-flash {
+      0%, 100% { opacity: 1; }
+      50%       { opacity: 0.45; }
+    }
+    @keyframes orb-breathe {
+      0%, 100% { transform: scale(1); }
+      50%       { transform: scale(1.06); }
+    }
+    @keyframes orb-speak {
+      0%, 100% { transform: scale(1); }
+      25%       { transform: scale(1.05); }
+      75%       { transform: scale(0.97); }
+    }
+    @keyframes eq-wave {
+      0%, 100% { height: 7px; }
+      50%       { height: 38px; }
+    }
+    .eq-bar {
+      width: 5px; background: rgba(255,255,255,0.9);
+      border-radius: 3px; flex-shrink: 0;
+    }
+    .eq-bar:nth-child(1) { animation: eq-wave 0.55s ease-in-out 0.00s infinite; }
+    .eq-bar:nth-child(2) { animation: eq-wave 0.55s ease-in-out 0.10s infinite; }
+    .eq-bar:nth-child(3) { animation: eq-wave 0.55s ease-in-out 0.20s infinite; }
+    .eq-bar:nth-child(4) { animation: eq-wave 0.55s ease-in-out 0.10s infinite; }
+    .eq-bar:nth-child(5) { animation: eq-wave 0.55s ease-in-out 0.05s infinite; }
+    @keyframes blob-drift {
+      0%, 100% { transform: translate(0,0) scale(1); }
+      33%       { transform: translate(40px,-28px) scale(1.08); }
+      66%       { transform: translate(-22px,18px) scale(0.94); }
+    }
+    @keyframes float-y {
+      0%, 100% { transform: translateY(0px); }
+      50%       { transform: translateY(-12px); }
+    }
+    @keyframes chip-float {
+      0%, 100% { transform: translateY(0); }
+      50%       { transform: translateY(-6px); }
+    }
+    @keyframes slide-up {
+      from { transform: translateY(18px); opacity: 0; }
+      to   { transform: translateY(0);    opacity: 1; }
+    }
+    .slide-up { animation: slide-up 0.35s ease-out both; }
+    @keyframes live-pulse {
+      0%, 100% { opacity: 1; transform: scale(1); }
+      50%       { opacity: 0.45; transform: scale(0.75); }
+    }
+    .live-dot { animation: live-pulse 1s ease-in-out infinite; }
+    ::-webkit-scrollbar { width: 5px; }
+    ::-webkit-scrollbar-thumb { background: rgba(216,90,48,0.25); border-radius: 99px; }
+    @keyframes page-in {
+      from { opacity: 0; transform: translateY(12px); }
+      to   { opacity: 1; transform: translateY(0); }
+    }
+    .page-in { animation: page-in 0.4s ease-out both; }
+  </style>
+</head>
+<body>
+  <div id="root"></div>
+
+  <script type="text/babel">
+
+const MicSVG = ({ size = 32 }) => (
+  <svg width={size} height={size} viewBox="0 0 24 24" fill="none">
+    <rect x="8.5" y="2" width="7" height="12" rx="3.5" fill="white"/>
+    <path d="M5 11c0 3.866 3.134 7 7 7s7-3.134 7-7" stroke="white" strokeWidth="2.2" strokeLinecap="round"/>
+    <line x1="12" y1="18" x2="12" y2="22" stroke="white" strokeWidth="2.2" strokeLinecap="round"/>
+    <line x1="8" y1="22" x2="16" y2="22" stroke="white" strokeWidth="2.2" strokeLinecap="round"/>
+  </svg>
+);
+
+const EarSVG = ({ size = 28 }) => (
+  <svg width={size} height={size} viewBox="0 0 24 24" fill="none">
+    <circle cx="12" cy="12" r="3" fill="white"/>
+    <circle cx="12" cy="12" r="6" fill="none" stroke="white" strokeWidth="2" opacity="0.6"/>
+    <circle cx="12" cy="12" r="9" fill="none" stroke="white" strokeWidth="1.5" opacity="0.3"/>
+  </svg>
+);
+
+const VoiceOrb = ({ state = 'idle', size = 'lg' }) => {
+  const isLg = size === 'lg';
+  const orbPx = isLg ? 176 : 72;
+
+  const cfg = {
+    idle: {
+      ring: 'rgba(216,90,48,0.15)',
+      ring2: 'rgba(216,90,48,0.08)',
+      grad: 'linear-gradient(140deg, #D85A30 0%, #EF9F27 100%)',
+      shadow: '0 12px 60px rgba(216,90,48,0.30)',
+      ringAnim: 'pulse-ring 3.2s ease-out infinite',
+      ring2Anim: 'pulse-ring 3.2s ease-out 0.6s infinite',
+      orbAnim: 'orb-breathe 3.5s ease-in-out infinite',
+    },
+    listening: {
+      ring: 'rgba(29,158,117,0.25)',
+      ring2: 'rgba(29,158,117,0.12)',
+      grad: 'linear-gradient(140deg, #1D9E75 0%, #7F77DD 100%)',
+      shadow: '0 12px 60px rgba(29,158,117,0.35)',
+      ringAnim: 'teal-ring 1.5s ease-out infinite',
+      ring2Anim: 'teal-ring 1.5s ease-out 0.5s infinite',
+      orbAnim: 'orb-breathe 1.6s ease-in-out infinite',
+    },
+    speaking: {
+      ring: 'rgba(216,90,48,0.22)',
+      ring2: 'rgba(239,159,39,0.12)',
+      grad: 'linear-gradient(140deg, #D85A30 0%, #EF9F27 100%)',
+      shadow: '0 12px 60px rgba(216,90,48,0.40)',
+      ringAnim: 'pulse-ring 1.8s ease-out infinite',
+      ring2Anim: 'pulse-ring 1.8s ease-out 0.4s infinite',
+      orbAnim: 'orb-speak 1.5s ease-in-out infinite',
+    },
+    interrupted: {
+      ring: 'rgba(239,159,39,0.28)',
+      ring2: 'rgba(212,83,126,0.14)',
+      grad: 'linear-gradient(140deg, #EF9F27 0%, #D4537E 100%)',
+      shadow: '0 12px 60px rgba(239,159,39,0.38)',
+      ringAnim: 'amber-flash 0.55s ease-in-out infinite',
+      ring2Anim: 'amber-flash 0.55s ease-in-out 0.15s infinite',
+      orbAnim: 'amber-flash 0.55s ease-in-out infinite',
+    },
+  };
+
+  const c = cfg[state];
+  const wrap = orbPx * 2.9;
+
+  return (
+    <div style={{ position: 'relative', width: wrap, height: wrap, display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0 }}>
+      {/* outer ring */}
+      <div style={{
+        position: 'absolute',
+        width: orbPx * 1.82, height: orbPx * 1.82,
+        borderRadius: '50%',
+        background: c.ring2,
+        animation: c.ring2Anim,
+        transition: 'background 0.7s ease',
+      }} />
+      {/* inner ring */}
+      <div style={{
+        position: 'absolute',
+        width: orbPx * 1.36, height: orbPx * 1.36,
+        borderRadius: '50%',
+        background: c.ring,
+        animation: c.ringAnim,
+        transition: 'background 0.7s ease',
+      }} />
+      {/* core */}
+      <div style={{
+        position: 'absolute',
+        width: orbPx, height: orbPx,
+        borderRadius: '50%',
+        background: c.grad,
+        boxShadow: c.shadow,
+        display: 'flex', alignItems: 'center', justifyContent: 'center',
+        animation: c.orbAnim,
+        transition: 'background 0.6s ease, box-shadow 0.6s ease',
+        cursor: 'default',
+      }}>
+        {state === 'speaking' && isLg ? (
+          <div style={{ display: 'flex', gap: 5, alignItems: 'center', height: 44 }}>
+            {[0,1,2,3,4].map(i => <div key={i} className="eq-bar" />)}
+          </div>
+        ) : state === 'listening' ? (
+          <EarSVG size={isLg ? 38 : 18} />
+        ) : (
+          <MicSVG size={isLg ? 38 : 18} />
+        )}
+      </div>
+    </div>
+  );
+};
+
+Object.assign(window, { VoiceOrb });
+
+  </script>
+
+  <script type="text/babel">
+
+const { useState, useEffect } = React;
+
+const SUBJECTS = [
+  { name: 'Math',      bg: '#FAECE7', color: '#D85A30' },
+  { name: 'Physics',   bg: '#E0F5EE', color: '#1D9E75' },
+  { name: 'Chemistry', bg: '#EEEDFE', color: '#7F77DD' },
+  { name: 'Biology',   bg: '#FEF3E2', color: '#C47A14' },
+  { name: 'English',   bg: '#FCE9EF', color: '#D4537E' },
+  { name: 'History',   bg: '#F0EDF9', color: '#6B5DB0' },
+];
+
+const FEATURES = [
+  {
+    icon: (
+      <svg viewBox="0 0 36 36" width="30" height="30" fill="none">
+        <circle cx="18" cy="18" r="18" fill="#FAECE7"/>
+        <rect x="14" y="10" width="8" height="12" rx="4" fill="#D85A30"/>
+        <path d="M10 19c0 4.418 3.582 8 8 8s8-3.582 8-8" stroke="#D85A30" strokeWidth="2.2" strokeLinecap="round"/>
+        <line x1="18" y1="27" x2="18" y2="30" stroke="#D85A30" strokeWidth="2.2" strokeLinecap="round"/>
+      </svg>
+    ),
+    title: 'Speak naturally',
+    desc: 'Just talk like you would with a great teacher — no typing, no menus. Pure voice.',
+    bg: '#FAECE7', color: '#D85A30',
+  },
+  {
+    icon: (
+      <svg viewBox="0 0 36 36" width="30" height="30" fill="none">
+        <circle cx="18" cy="18" r="18" fill="#EEEDFE"/>
+        <circle cx="18" cy="14" r="5" fill="#7F77DD"/>
+        <path d="M18 19v4" stroke="#7F77DD" strokeWidth="2.2" strokeLinecap="round"/>
+        <circle cx="18" cy="25" r="1.5" fill="#7F77DD"/>
+      </svg>
+    ),
+    title: 'Socratic method',
+    desc: 'TutorTalk guides you to answers with questions — building real understanding, not shortcuts.',
+    bg: '#EEEDFE', color: '#7F77DD',
+  },
+  {
+    icon: (
+      <svg viewBox="0 0 36 36" width="30" height="30" fill="none">
+        <circle cx="18" cy="18" r="18" fill="#E0F5EE"/>
+        <rect x="11" y="9" width="14" height="18" rx="3" fill="#1D9E75" opacity="0.3"/>
+        <rect x="11" y="9" width="14" height="18" rx="3" stroke="#1D9E75" strokeWidth="1.8"/>
+        <line x1="14" y1="14" x2="22" y2="14" stroke="#1D9E75" strokeWidth="1.6" strokeLinecap="round"/>
+        <line x1="14" y1="18" x2="22" y2="18" stroke="#1D9E75" strokeWidth="1.6" strokeLinecap="round"/>
+        <line x1="14" y1="22" x2="18" y2="22" stroke="#1D9E75" strokeWidth="1.6" strokeLinecap="round"/>
+      </svg>
+    ),
+    title: 'PDF session reports',
+    desc: 'Every session produces a full transcript and progress report — perfect for revision.',
+    bg: '#E0F5EE', color: '#1D9E75',
+  },
+];
+
+const TESTIMONIALS = [
+  { text: 'I finally understood derivatives after 10 minutes with TutorTalk. My teacher was shocked at my next test!', name: 'Aanya R.', subject: 'Math', init: 'A', delay: '0s' },
+  { text: "It doesn't just hand you the answer. It makes you actually think. Complete game-changer for exam prep.", name: 'Marcus K.', subject: 'Physics', init: 'M', delay: '1.4s' },
+  { text: 'The PDF reports are perfect for last-minute revision before exams. I use them every single time.', name: 'Sofia L.', subject: 'Chemistry', init: 'S', delay: '2.8s' },
+];
+
+const LandingPage = ({ onNavigate }) => {
+  const [orbState, setOrbState] = useState('idle');
+  const [activeSubject, setActiveSubject] = useState(null);
+
+  useEffect(() => {
+    const states = ['idle', 'listening', 'speaking', 'speaking', 'idle', 'listening'];
+    let i = 0;
+    const t = setInterval(() => {
+      i = (i + 1) % states.length;
+      setOrbState(states[i]);
+    }, 2800);
+    return () => clearInterval(t);
+  }, []);
+
+  const stateLabel = {
+    idle: 'Tap to start a session',
+    listening: 'Listening to you…',
+    speaking: 'AI is explaining…',
+    interrupted: 'Just a moment…',
+  };
+
+  return (
+    <div style={{ minHeight: '100vh', background: '#FFFBF7', overflowX: 'hidden' }} className="page-in">
+
+      {/* ── Nav ── */}
+      <nav style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', padding: '22px 52px', position: 'relative', zIndex: 20 }}>
+        <div style={{ display: 'flex', alignItems: 'center', gap: 10, cursor: 'pointer' }} onClick={() => onNavigate('landing')}>
+          <div style={{ width: 38, height: 38, borderRadius: '50%', background: 'linear-gradient(135deg,#D85A30,#EF9F27)', display: 'flex', alignItems: 'center', justifyContent: 'center', boxShadow: '0 4px 16px rgba(216,90,48,0.3)' }}>
+            <span style={{ color: 'white', fontWeight: 800, fontSize: 17 }}>T</span>
+          </div>
+          <span style={{ fontSize: 21, fontWeight: 800, color: '#4A1B0C', letterSpacing: '-0.4px' }}>TutorTalk</span>
+        </div>
+        <div style={{ display: 'flex', gap: 28, alignItems: 'center' }}>
+          <button onClick={() => onNavigate('dashboard')} style={{ color: '#993C1D', fontWeight: 500, background: 'none', border: 'none', cursor: 'pointer', fontSize: 15, opacity: 0.8, transition: 'opacity .2s' }}
+            onMouseEnter={e => e.target.style.opacity = '1'}
+            onMouseLeave={e => e.target.style.opacity = '0.8'}>
+            Dashboard
+          </button>
+          <button onClick={() => onNavigate('session')} className="cta-btn" style={{ color: 'white', padding: '11px 28px', borderRadius: 99, border: 'none', cursor: 'pointer', fontWeight: 700, fontSize: 14, fontFamily: 'Poppins' }}>
+            Start session
+          </button>
+        </div>
+      </nav>
+
+      {/* ── Hero ── */}
+      <section style={{ position: 'relative', padding: '40px 52px 80px', textAlign: 'center', display: 'flex', flexDirection: 'column', alignItems: 'center' }}>
+
+        {/* background blobs */}
+        <div style={{ position: 'absolute', top: -80, right: -100, width: 560, height: 560, borderRadius: '50%', background: 'radial-gradient(circle, rgba(216,90,48,0.09) 0%, transparent 65%)', animation: 'blob-drift 11s ease-in-out infinite', pointerEvents: 'none', zIndex: 0 }} />
+        <div style={{ position: 'absolute', bottom: -80, left: -120, width: 640, height: 640, borderRadius: '50%', background: 'radial-gradient(circle, rgba(127,119,221,0.07) 0%, transparent 65%)', animation: 'blob-drift 15s ease-in-out reverse infinite', pointerEvents: 'none', zIndex: 0 }} />
+        <div style={{ position: 'absolute', top: '35%', left: '3%', width: 360, height: 360, borderRadius: '50%', background: 'radial-gradient(circle, rgba(29,158,117,0.06) 0%, transparent 65%)', animation: 'blob-drift 13s ease-in-out 2s infinite', pointerEvents: 'none', zIndex: 0 }} />
+
+        <div style={{ position: 'relative', zIndex: 1, display: 'flex', flexDirection: 'column', alignItems: 'center' }}>
+          {/* badge */}
+          <div style={{ display: 'inline-flex', alignItems: 'center', gap: 8, background: '#FAECE7', borderRadius: 99, padding: '8px 22px', marginBottom: 36 }}>
+            <div className="live-dot" style={{ width: 8, height: 8, borderRadius: '50%', background: '#D4537E', flexShrink: 0 }} />
+            <span style={{ color: '#D85A30', fontWeight: 600, fontSize: 13, letterSpacing: '0.2px' }}>Socratic AI tutoring · Live voice</span>
+          </div>
+
+          {/* headline */}
+          <h1 style={{ fontSize: 'clamp(48px, 7vw, 82px)', fontWeight: 800, lineHeight: 1.08, maxWidth: 820, marginBottom: 28, letterSpacing: '-2px' }}>
+            <span className="gradient-text">Ask anything.</span><br />
+            <span style={{ color: '#4A1B0C' }}>Learn by talking.</span>
+          </h1>
+
+          <p style={{ fontSize: 19, color: '#993C1D', maxWidth: 520, lineHeight: 1.72, marginBottom: 44, opacity: 0.9 }}>
+            TutorTalk uses Socratic voice AI to guide you to answers —&nbsp;not just give them.
+          </p>
+
+          {/* CTAs */}
+          <div style={{ display: 'flex', gap: 14, marginBottom: 72, alignItems: 'center', flexWrap: 'wrap', justifyContent: 'center' }}>
+            <button onClick={() => onNavigate('session')} className="cta-btn" style={{ color: 'white', padding: '18px 50px', borderRadius: 99, border: 'none', cursor: 'pointer', fontWeight: 700, fontSize: 18, fontFamily: 'Poppins', letterSpacing: '-0.3px' }}>
+              Start learning free
+            </button>
+            <button onClick={() => onNavigate('dashboard')} style={{ color: '#993C1D', padding: '18px 32px', borderRadius: 99, border: '2px solid rgba(216,90,48,0.22)', background: 'transparent', cursor: 'pointer', fontWeight: 600, fontSize: 16, fontFamily: 'Poppins', transition: 'background .2s' }}
+              onMouseEnter={e => e.currentTarget.style.background = 'rgba(216,90,48,0.06)'}
+              onMouseLeave={e => e.currentTarget.style.background = 'transparent'}>
+              See dashboard →
+            </button>
+          </div>
+
+          {/* Voice orb preview */}
+          <div style={{ position: 'relative', display: 'flex', flexDirection: 'column', alignItems: 'center', gap: 20 }}>
+            <VoiceOrb state={orbState} size="lg" />
+            <div style={{ display: 'flex', alignItems: 'center', gap: 8, background: 'white', borderRadius: 99, padding: '9px 22px', boxShadow: '0 2px 16px rgba(0,0,0,0.06)' }}>
+              <div style={{ width: 8, height: 8, borderRadius: '50%', flexShrink: 0,
+                background: orbState === 'listening' ? '#1D9E75' : orbState === 'speaking' ? '#D85A30' : orbState === 'interrupted' ? '#EF9F27' : '#993C1D',
+                opacity: 0.7,
+              }} />
+              <span style={{ color: '#4A1B0C', fontSize: 13, fontWeight: 500 }}>{stateLabel[orbState]}</span>
+            </div>
+          </div>
+        </div>
+      </section>
+
+      {/* ── Subject chips ── */}
+      <section style={{ padding: '20px 52px 72px', textAlign: 'center' }}>
+        <p style={{ color: '#993C1D', fontWeight: 600, marginBottom: 28, fontSize: 12, letterSpacing: '2.5px', textTransform: 'uppercase', opacity: 0.55 }}>covers every subject</p>
+        <div style={{ display: 'flex', gap: 14, justifyContent: 'center', flexWrap: 'wrap' }}>
+          {SUBJECTS.map((s, i) => (
+            <button key={s.name}
+              onClick={() => { setActiveSubject(s.name); onNavigate('session'); }}
+              style={{
+                background: s.bg, color: s.color,
+                padding: '13px 30px', borderRadius: 99,
+                border: `2px solid ${activeSubject === s.name ? s.color : 'transparent'}`,
+                cursor: 'pointer', fontWeight: 600, fontSize: 15, fontFamily: 'Poppins',
+                transition: 'transform 0.2s, box-shadow 0.2s',
+                animation: `chip-float ${3.2 + i * 0.55}s ease-in-out ${i * 0.28}s infinite`,
+              }}
+              onMouseEnter={e => { e.currentTarget.style.transform = 'scale(1.08)'; e.currentTarget.style.boxShadow = `0 6px 24px ${s.color}28`; }}
+              onMouseLeave={e => { e.currentTarget.style.transform = ''; e.currentTarget.style.boxShadow = ''; }}
+            >
+              {s.name}
+            </button>
+          ))}
+        </div>
+      </section>
+
+      {/* ── Features ── */}
+      <section style={{ padding: '20px 52px 96px' }}>
+        <h2 style={{ textAlign: 'center', fontSize: 40, fontWeight: 700, color: '#4A1B0C', marginBottom: 52, letterSpacing: '-1px' }}>Why TutorTalk works</h2>
+        <div style={{ display: 'grid', gridTemplateColumns: 'repeat(3, 1fr)', gap: 24, maxWidth: 1020, margin: '0 auto' }}>
+          {FEATURES.map((f, i) => (
+            <div key={i}
+              style={{ background: 'white', borderRadius: 20, padding: '36px 30px', boxShadow: '0 2px 24px rgba(216,90,48,0.07)', transition: 'transform 0.22s, box-shadow 0.22s', cursor: 'default' }}
+              onMouseEnter={e => { e.currentTarget.style.transform = 'translateY(-6px)'; e.currentTarget.style.boxShadow = '0 12px 48px rgba(216,90,48,0.13)'; }}
+              onMouseLeave={e => { e.currentTarget.style.transform = ''; e.currentTarget.style.boxShadow = '0 2px 24px rgba(216,90,48,0.07)'; }}
+            >
+              <div style={{ width: 58, height: 58, borderRadius: 16, background: f.bg, display: 'flex', alignItems: 'center', justifyContent: 'center', marginBottom: 22 }}>
+                {f.icon}
+              </div>
+              <h3 style={{ fontSize: 19, fontWeight: 700, color: '#4A1B0C', marginBottom: 12, letterSpacing: '-0.3px' }}>{f.title}</h3>
+              <p style={{ color: '#993C1D', lineHeight: 1.72, fontSize: 14.5 }}>{f.desc}</p>
+            </div>
+          ))}
+        </div>
+      </section>
+
+      {/* ── Testimonials ── */}
+      <section style={{ padding: '20px 52px 100px', background: 'linear-gradient(180deg, #FFFBF7 0%, #FFF4EE 100%)' }}>
+        <h2 style={{ textAlign: 'center', fontSize: 36, fontWeight: 700, color: '#4A1B0C', marginBottom: 52, letterSpacing: '-0.8px' }}>Students love it</h2>
+        <div style={{ display: 'grid', gridTemplateColumns: 'repeat(3, 1fr)', gap: 24, maxWidth: 1020, margin: '0 auto' }}>
+          {TESTIMONIALS.map((t, i) => (
+            <div key={i} style={{ background: 'white', borderRadius: 22, padding: '30px', boxShadow: '0 4px 28px rgba(216,90,48,0.08)', animation: `float-y ${4 + i * 1.2}s ease-in-out ${t.delay} infinite` }}>
+              <div style={{ fontSize: 28, color: '#D85A30', marginBottom: 14, opacity: 0.4, fontFamily: 'Georgia, serif', lineHeight: 1 }}>"</div>
+              <p style={{ color: '#993C1D', lineHeight: 1.72, marginBottom: 22, fontSize: 14.5 }}>{t.text}</p>
+              <div style={{ display: 'flex', alignItems: 'center', gap: 12 }}>
+                <div style={{ width: 42, height: 42, borderRadius: '50%', background: 'linear-gradient(135deg,#D85A30,#EF9F27)', display: 'flex', alignItems: 'center', justifyContent: 'center', color: 'white', fontWeight: 700, fontSize: 16, flexShrink: 0 }}>{t.init}</div>
+                <div>
+                  <div style={{ fontWeight: 700, color: '#4A1B0C', fontSize: 14 }}>{t.name}</div>
+                  <div style={{ color: '#993C1D', fontSize: 12, opacity: 0.65 }}>{t.subject} student</div>
+                </div>
+              </div>
+            </div>
+          ))}
+        </div>
+      </section>
+
+      {/* ── Footer CTA ── */}
+      <section style={{ textAlign: 'center', padding: '84px 52px', background: 'linear-gradient(130deg, #D85A30 0%, #EF9F27 100%)', position: 'relative', overflow: 'hidden' }}>
+        <div style={{ position: 'absolute', inset: 0, background: 'radial-gradient(circle at 25% 50%, rgba(255,255,255,0.12) 0%, transparent 55%)', pointerEvents: 'none' }} />
+        <div style={{ position: 'absolute', inset: 0, background: 'radial-gradient(circle at 80% 60%, rgba(255,255,255,0.07) 0%, transparent 45%)', pointerEvents: 'none' }} />
+        <h2 style={{ fontSize: 50, fontWeight: 800, color: 'white', marginBottom: 18, position: 'relative', letterSpacing: '-1.5px' }}>Ready to understand more?</h2>
+        <p style={{ color: 'rgba(255,255,255,0.88)', fontSize: 18, marginBottom: 44, position: 'relative' }}>Join 10,000+ students learning smarter every day.</p>
+        <button onClick={() => onNavigate('session')} style={{ background: 'white', color: '#D85A30', padding: '20px 56px', borderRadius: 99, border: 'none', cursor: 'pointer', fontWeight: 800, fontSize: 18, fontFamily: 'Poppins', transition: 'transform 0.2s, box-shadow 0.2s', position: 'relative', letterSpacing: '-0.3px' }}
+          onMouseEnter={e => { e.currentTarget.style.transform = 'scale(1.05)'; e.currentTarget.style.boxShadow = '0 12px 48px rgba(0,0,0,0.15)'; }}
+          onMouseLeave={e => { e.currentTarget.style.transform = ''; e.currentTarget.style.boxShadow = ''; }}>
+          Start for free →
+        </button>
+      </section>
+    </div>
+  );
+};
+
+Object.assign(window, { LandingPage });
+
+  </script>
+
+  <script type="text/babel">
+
+const { useState, useEffect, useRef } = React;
+
+const CONVO = [
+  { role: 'tutor',   text: "Hi! I'm here to help you explore calculus. What would you like to work on today?",                                                                      delay: 800  },
+  { role: 'student', text: "I don't really understand how to find the derivative of x squared.",                                                                                    delay: 3200 },
+  { role: 'tutor',   text: "Great starting point! Before I explain, tell me — what do you think a derivative actually measures?",                                                    delay: 6000 },
+  { role: 'student', text: "Umm… the slope? Like how steep the graph is at a point?",                                                                                               delay: 9800 },
+  { role: 'tutor',   text: "Exactly right — the slope at each specific point. Now, does y = x² have the same slope everywhere, or does it change?",                                delay: 13200 },
+  { role: 'student', text: "It changes… it's steeper on the sides and flat at the bottom?",                                                                                         delay: 17000 },
+  { role: 'tutor',   text: "Perfect observation! So the derivative tells us the slope at every x. Using the power rule — if f(x) = xⁿ, then f'(x) = n·xⁿ⁻¹ — can you apply that to x²?", delay: 21000 },
+  { role: 'student', text: "So… f'(x) = 2x?",                                                                                                                                       delay: 25000 },
+  { role: 'tutor',   text: "Yes! f'(x) = 2x — which means at x = 3 the slope is 6, and at x = 0 the slope is 0. That's why the bottom is flat. You worked that out yourself! 🎉",  delay: 28200 },
+];
+
+const ORB_SEQ = ['idle', 'listening', 'speaking', 'listening', 'speaking', 'listening', 'speaking', 'listening', 'speaking'];
+
+const SessionPage = ({ onNavigate }) => {
+  const [messages, setMessages]   = useState([]);
+  const [orbState, setOrbState]   = useState('idle');
+  const [secs, setSecs]           = useState(0);
+  const [muted, setMuted]         = useState(false);
+  const [ended, setEnded]         = useState(false);
+  const [topic, setTopic]         = useState('Power Rule');
+  const scrollRef                 = useRef(null);
+
+  /* timer */
+  useEffect(() => {
+    const t = setInterval(() => setSecs(s => s + 1), 1000);
+    return () => clearInterval(t);
+  }, []);
+
+  /* simulated conversation */
+  useEffect(() => {
+    const timers = CONVO.map((msg, i) =>
+      setTimeout(() => {
+        setMessages(prev => [...prev, { ...msg, id: Date.now() + i }]);
+        setOrbState(ORB_SEQ[i + 1] || 'idle');
+      }, msg.delay)
+    );
+    return () => timers.forEach(clearTimeout);
+  }, []);
+
+  /* auto-scroll */
+  useEffect(() => {
+    if (scrollRef.current) scrollRef.current.scrollTop = scrollRef.current.scrollHeight;
+  }, [messages]);
+
+  const fmt = s => `${String(Math.floor(s / 60)).padStart(2, '0')}:${String(s % 60).padStart(2, '0')}`;
+
+  /* ── Ended screen ── */
+  if (ended) return (
+    <div className="page-in" style={{ minHeight: '100vh', background: '#FFFBF7', display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', gap: 28 }}>
+      <div style={{ width: 88, height: 88, borderRadius: '50%', background: '#E0F5EE', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+        <svg width="44" height="44" viewBox="0 0 24 24" fill="none"><path d="M5 13l4 4L19 7" stroke="#1D9E75" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round"/></svg>
+      </div>
+      <div style={{ textAlign: 'center' }}>
+        <h2 style={{ fontSize: 34, fontWeight: 800, color: '#4A1B0C', marginBottom: 10, letterSpacing: '-0.8px' }}>Session complete!</h2>
+        <p style={{ color: '#993C1D', fontSize: 16 }}>Your PDF report is ready to download.</p>
+      </div>
+      <div style={{ display: 'flex', gap: 14 }}>
+        <button style={{ background: '#E0F5EE', color: '#1D9E75', padding: '13px 28px', borderRadius: 99, border: 'none', cursor: 'pointer', fontWeight: 600, fontSize: 15, fontFamily: 'Poppins' }}>
+          Download PDF
+        </button>
+        <button onClick={() => onNavigate('dashboard')} className="cta-btn" style={{ color: 'white', padding: '13px 32px', borderRadius: 99, border: 'none', cursor: 'pointer', fontWeight: 700, fontSize: 15, fontFamily: 'Poppins' }}>
+          View dashboard →
+        </button>
+      </div>
+    </div>
+  );
+
+  /* ── Orb state color map ── */
+  const orbStateColor = { idle: '#993C1D', listening: '#1D9E75', speaking: '#D85A30', interrupted: '#EF9F27' };
+  const orbStateLabel = { idle: 'Ready', listening: 'Listening…', speaking: 'Explaining…', interrupted: 'Pausing…' };
+
+  return (
+    <div className="page-in" style={{ minHeight: '100vh', background: '#FFFBF7', display: 'flex', flexDirection: 'column' }}>
+
+      {/* ── Top bar ── */}
+      <div style={{ padding: '0 32px', height: 68, display: 'flex', alignItems: 'center', justifyContent: 'space-between', borderBottom: '1.5px solid rgba(216,90,48,0.08)', background: 'white', flexShrink: 0 }}>
+        <div style={{ display: 'flex', alignItems: 'center', gap: 18 }}>
+          <button onClick={() => onNavigate('landing')} style={{ color: '#993C1D', background: 'none', border: 'none', cursor: 'pointer', fontSize: 22, lineHeight: 1, opacity: 0.7, transition: 'opacity .2s' }}
+            onMouseEnter={e => e.target.style.opacity = '1'}
+            onMouseLeave={e => e.target.style.opacity = '0.7'}>←</button>
+          <span style={{ fontSize: 17, fontWeight: 700, color: '#4A1B0C' }}>Calculus · Derivatives</span>
+          <div style={{ display: 'flex', alignItems: 'center', gap: 7, background: '#FCE9EF', borderRadius: 99, padding: '5px 16px' }}>
+            <div className="live-dot" style={{ width: 7, height: 7, borderRadius: '50%', background: '#D4537E', flexShrink: 0 }} />
+            <span style={{ color: '#D4537E', fontWeight: 700, fontSize: 12 }}>Session active</span>
+          </div>
+        </div>
+        <div style={{ display: 'flex', gap: 14 }}>
+          {/* topic card */}
+          <div style={{ background: '#FAECE7', borderRadius: 14, padding: '8px 20px', textAlign: 'center', minWidth: 110 }}>
+            <div style={{ fontSize: 11, color: '#D85A30', fontWeight: 600, marginBottom: 1, letterSpacing: '0.5px' }}>TOPIC</div>
+            <div style={{ fontSize: 14, color: '#4A1B0C', fontWeight: 700 }}>{topic}</div>
+          </div>
+          {/* timer card */}
+          <div style={{ background: '#E0F5EE', borderRadius: 14, padding: '8px 20px', textAlign: 'center', minWidth: 90 }}>
+            <div style={{ fontSize: 11, color: '#1D9E75', fontWeight: 600, marginBottom: 1, letterSpacing: '0.5px' }}>TIME</div>
+            <div style={{ fontSize: 14, color: '#4A1B0C', fontWeight: 700, fontVariantNumeric: 'tabular-nums' }}>{fmt(secs)}</div>
+          </div>
+        </div>
+      </div>
+
+      {/* ── Main split ── */}
+      <div style={{ flex: 1, display: 'grid', gridTemplateColumns: '1fr 1fr', overflow: 'hidden' }}>
+
+        {/* Left: Orb panel */}
+        <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', padding: '40px 48px', gap: 28 }}>
+          <VoiceOrb state={orbState} size="lg" />
+
+          {/* state label */}
+          <div style={{ display: 'flex', alignItems: 'center', gap: 8, background: 'white', borderRadius: 99, padding: '9px 22px', boxShadow: '0 2px 16px rgba(0,0,0,0.06)' }}>
+            <div style={{ width: 8, height: 8, borderRadius: '50%', background: orbStateColor[orbState], transition: 'background .5s', flexShrink: 0 }} />
+            <span style={{ color: '#4A1B0C', fontSize: 13, fontWeight: 600, transition: 'all .3s' }}>{orbStateLabel[orbState]}</span>
+          </div>
+
+          {/* interactive state picker (demo tool) */}
+          <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', gap: 10 }}>
+            <span style={{ fontSize: 11, color: '#993C1D', opacity: 0.45, fontWeight: 500, letterSpacing: '1.5px', textTransform: 'uppercase' }}>Demo orb states</span>
+            <div style={{ display: 'flex', gap: 8 }}>
+              {['idle', 'listening', 'speaking', 'interrupted'].map(s => (
+                <button key={s} onClick={() => setOrbState(s)} style={{
+                  padding: '6px 14px', borderRadius: 99, border: 'none', cursor: 'pointer',
+                  fontSize: 11, fontWeight: 700, fontFamily: 'Poppins', transition: 'all .2s',
+                  background: orbState === s ? '#D85A30' : '#FAECE7',
+                  color: orbState === s ? 'white' : '#D85A30',
+                  transform: orbState === s ? 'scale(1.06)' : 'scale(1)',
+                }}>
+                  {s}
+                </button>
+              ))}
+            </div>
+          </div>
+        </div>
+
+        {/* Right: Transcript */}
+        <div style={{ borderLeft: '1.5px solid rgba(216,90,48,0.08)', display: 'flex', flexDirection: 'column', overflow: 'hidden' }}>
+          <div style={{ padding: '16px 24px', borderBottom: '1px solid rgba(216,90,48,0.07)', background: 'white', flexShrink: 0, display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
+            <span style={{ fontSize: 14, fontWeight: 700, color: '#4A1B0C' }}>Live Transcript</span>
+            <span style={{ fontSize: 12, color: '#993C1D', opacity: 0.5 }}>{messages.length} messages</span>
+          </div>
+          <div ref={scrollRef} style={{ flex: 1, overflowY: 'auto', padding: '24px 20px', display: 'flex', flexDirection: 'column', gap: 14 }}>
+            {messages.length === 0 && (
+              <div style={{ textAlign: 'center', padding: '60px 20px', color: '#993C1D', opacity: 0.35 }}>
+                <svg width="40" height="40" viewBox="0 0 24 24" fill="none" style={{ margin: '0 auto 12px', display: 'block' }}>
+                  <path d="M21 15a2 2 0 01-2 2H7l-4 4V5a2 2 0 012-2h14a2 2 0 012 2z" stroke="#993C1D" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round"/>
+                </svg>
+                <div style={{ fontSize: 14, fontWeight: 500 }}>Your conversation will appear here…</div>
+              </div>
+            )}
+            {messages.map((msg, i) => (
+              <div key={msg.id || i} className="slide-up" style={{ display: 'flex', justifyContent: msg.role === 'student' ? 'flex-start' : 'flex-end', animationDelay: '0s' }}>
+                <div style={{
+                  maxWidth: '78%',
+                  padding: '11px 16px',
+                  borderRadius: msg.role === 'student' ? '5px 18px 18px 18px' : '18px 5px 18px 18px',
+                  background: msg.role === 'student' ? '#EEEDFE' : '#FAECE7',
+                  fontSize: 13.5, lineHeight: 1.65,
+                  color: msg.role === 'student' ? '#26215C' : '#4A1B0C',
+                }}>
+                  <div style={{ fontSize: 10, fontWeight: 700, marginBottom: 4, opacity: 0.55, letterSpacing: '1.2px', textTransform: 'uppercase', color: msg.role === 'student' ? '#7F77DD' : '#D85A30' }}>
+                    {msg.role === 'student' ? 'You' : 'TutorTalk AI'}
+                  </div>
+                  {msg.text}
+                </div>
+              </div>
+            ))}
+          </div>
+        </div>
+      </div>
+
+      {/* ── Bottom bar ── */}
+      <div style={{ padding: '14px 32px', borderTop: '1.5px solid rgba(216,90,48,0.08)', background: 'white', display: 'flex', justifyContent: 'center', gap: 14, flexShrink: 0 }}>
+        <button onClick={() => setEnded(true)} className="cta-btn" style={{ color: 'white', padding: '12px 34px', borderRadius: 99, border: 'none', cursor: 'pointer', fontWeight: 700, fontSize: 14, fontFamily: 'Poppins', display: 'flex', alignItems: 'center', gap: 9 }}>
+          <svg width="16" height="16" viewBox="0 0 24 24" fill="none"><rect x="5" y="3" width="14" height="18" rx="2" stroke="white" strokeWidth="2"/><line x1="9" y1="8" x2="15" y2="8" stroke="white" strokeWidth="1.8" strokeLinecap="round"/><line x1="9" y1="12" x2="15" y2="12" stroke="white" strokeWidth="1.8" strokeLinecap="round"/><line x1="9" y1="16" x2="12" y2="16" stroke="white" strokeWidth="1.8" strokeLinecap="round"/></svg>
+          End &amp; Save PDF
+        </button>
+        <button onClick={() => setMuted(m => !m)} style={{
+          background: muted ? '#7F77DD' : '#EEEDFE',
+          color: muted ? 'white' : '#7F77DD',
+          padding: '12px 28px', borderRadius: 99, border: 'none', cursor: 'pointer',
+          fontWeight: 700, fontSize: 14, fontFamily: 'Poppins',
+          display: 'flex', alignItems: 'center', gap: 9,
+          transition: 'all .2s',
+        }}>
+          {muted ? (
+            <svg width="16" height="16" viewBox="0 0 24 24" fill="none"><line x1="3" y1="3" x2="21" y2="21" stroke="currentColor" strokeWidth="2" strokeLinecap="round"/><path d="M9 9v3a3 3 0 005.12 2.12M15 9.34V6a3 3 0 00-5.94-.6" stroke="currentColor" strokeWidth="2" strokeLinecap="round"/><path d="M17 16.95A7 7 0 015 12" stroke="currentColor" strokeWidth="2" strokeLinecap="round"/></svg>
+          ) : (
+            <svg width="16" height="16" viewBox="0 0 24 24" fill="none"><rect x="9" y="2" width="6" height="12" rx="3" fill="currentColor"/><path d="M5 10c0 3.866 3.134 7 7 7s7-3.134 7-7" stroke="currentColor" strokeWidth="2" strokeLinecap="round"/><line x1="12" y1="17" x2="12" y2="21" stroke="currentColor" strokeWidth="2" strokeLinecap="round"/></svg>
+          )}
+          {muted ? 'Unmute mic' : 'Mute mic'}
+        </button>
+      </div>
+    </div>
+  );
+};
+
+Object.assign(window, { SessionPage });
+
+  </script>
+
+  <script type="text/babel">
+
+const { useState } = React;
+
+const SESSIONS = [
+  { subject: 'Math',      sc: '#D85A30', sb: '#FAECE7', topic: 'Derivatives — Power Rule',          date: 'Apr 18, 2026', dur: '22 min', msgs: 9  },
+  { subject: 'Physics',   sc: '#1D9E75', sb: '#E0F5EE', topic: "Newton's Second Law",               date: 'Apr 16, 2026', dur: '34 min', msgs: 14 },
+  { subject: 'Chemistry', sc: '#7F77DD', sb: '#EEEDFE', topic: 'Ionic Bonds & Electron Sharing',    date: 'Apr 14, 2026', dur: '18 min', msgs: 7  },
+  { subject: 'English',   sc: '#D4537E', sb: '#FCE9EF', topic: 'Metaphor vs Simile in Poetry',      date: 'Apr 11, 2026', dur: '28 min', msgs: 11 },
+  { subject: 'Biology',   sc: '#C47A14', sb: '#FEF3E2', topic: 'Mitosis vs Meiosis',                date: 'Apr 9,  2026', dur: '41 min', msgs: 17 },
+];
+
+const METRICS = [
+  { label: 'Total sessions', value: '12', bg: '#FAECE7', color: '#D85A30',
+    icon: <svg width="28" height="28" viewBox="0 0 24 24" fill="none"><rect x="9" y="2" width="6" height="12" rx="3" fill="#D85A30"/><path d="M5 10c0 3.866 3.134 7 7 7s7-3.134 7-7" stroke="#D85A30" strokeWidth="2.2" strokeLinecap="round"/><line x1="12" y1="17" x2="12" y2="21" stroke="#D85A30" strokeWidth="2.2" strokeLinecap="round"/></svg> },
+  { label: 'Topics covered', value: '34', bg: '#EEEDFE', color: '#7F77DD',
+    icon: <svg width="28" height="28" viewBox="0 0 24 24" fill="none"><rect x="4" y="3" width="16" height="18" rx="3" stroke="#7F77DD" strokeWidth="2"/><line x1="8" y1="8"  x2="16" y2="8"  stroke="#7F77DD" strokeWidth="1.8" strokeLinecap="round"/><line x1="8" y1="12" x2="16" y2="12" stroke="#7F77DD" strokeWidth="1.8" strokeLinecap="round"/><line x1="8" y1="16" x2="12" y2="16" stroke="#7F77DD" strokeWidth="1.8" strokeLinecap="round"/></svg> },
+  { label: 'Minutes learned', value: '287', bg: '#E0F5EE', color: '#1D9E75',
+    icon: <svg width="28" height="28" viewBox="0 0 24 24" fill="none"><circle cx="12" cy="12" r="9" stroke="#1D9E75" strokeWidth="2"/><polyline points="12 7 12 12 15 15" stroke="#1D9E75" strokeWidth="2.2" strokeLinecap="round" strokeLinejoin="round"/></svg> },
+];
+
+const DashboardPage = ({ onNavigate }) => {
+  const [downloadedIdx, setDownloadedIdx] = useState(null);
+
+  return (
+    <div className="page-in" style={{ minHeight: '100vh', background: '#FFFBF7' }}>
+
+      {/* ── Nav ── */}
+      <div style={{ padding: '0 36px', height: 68, display: 'flex', alignItems: 'center', justifyContent: 'space-between', borderBottom: '1.5px solid rgba(216,90,48,0.08)', background: 'white', flexShrink: 0 }}>
+        <div style={{ display: 'flex', alignItems: 'center', gap: 10, cursor: 'pointer' }} onClick={() => onNavigate('landing')}>
+          <div style={{ width: 34, height: 34, borderRadius: '50%', background: 'linear-gradient(135deg,#D85A30,#EF9F27)', display: 'flex', alignItems: 'center', justifyContent: 'center', boxShadow: '0 3px 12px rgba(216,90,48,0.28)' }}>
+            <span style={{ color: 'white', fontWeight: 800, fontSize: 15 }}>T</span>
+          </div>
+          <span style={{ fontSize: 18, fontWeight: 800, color: '#4A1B0C', letterSpacing: '-0.4px' }}>TutorTalk</span>
+        </div>
+        <button onClick={() => onNavigate('session')} className="cta-btn" style={{ color: 'white', padding: '10px 26px', borderRadius: 99, border: 'none', cursor: 'pointer', fontWeight: 700, fontSize: 14, fontFamily: 'Poppins' }}>
+          + New session
+        </button>
+      </div>
+
+      <div style={{ maxWidth: 920, margin: '0 auto', padding: '52px 36px' }}>
+
+        {/* ── Greeting ── */}
+        <div style={{ marginBottom: 44 }}>
+          <h1 style={{ fontSize: 38, fontWeight: 800, color: '#4A1B0C', letterSpacing: '-1px', marginBottom: 8 }}>
+            Good morning, Alex! ☀️
+          </h1>
+          <p style={{ color: '#993C1D', fontSize: 16, opacity: 0.8 }}>You've been on a great streak — 5 sessions this week!</p>
+        </div>
+
+        {/* ── Metric cards ── */}
+        <div style={{ display: 'grid', gridTemplateColumns: 'repeat(3, 1fr)', gap: 20, marginBottom: 52 }}>
+          {METRICS.map((m, i) => (
+            <div key={i} style={{ background: m.bg, borderRadius: 18, padding: '28px 26px', display: 'flex', alignItems: 'center', gap: 20, transition: 'transform .2s, box-shadow .2s', cursor: 'default' }}
+              onMouseEnter={e => { e.currentTarget.style.transform = 'translateY(-3px)'; e.currentTarget.style.boxShadow = `0 10px 32px ${m.color}22`; }}
+              onMouseLeave={e => { e.currentTarget.style.transform = ''; e.currentTarget.style.boxShadow = ''; }}>
+              <div style={{ width: 56, height: 56, borderRadius: 16, background: 'white', display: 'flex', alignItems: 'center', justifyContent: 'center', boxShadow: `0 2px 12px ${m.color}18`, flexShrink: 0 }}>
+                {m.icon}
+              </div>
+              <div>
+                <div style={{ fontSize: 38, fontWeight: 800, color: m.color, lineHeight: 1, letterSpacing: '-1px' }}>{m.value}</div>
+                <div style={{ fontSize: 12.5, color: '#993C1D', fontWeight: 600, marginTop: 4, opacity: 0.75 }}>{m.label}</div>
+              </div>
+            </div>
+          ))}
+        </div>
+
+        {/* ── Sessions list ── */}
+        <div>
+          <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 20 }}>
+            <h2 style={{ fontSize: 22, fontWeight: 700, color: '#4A1B0C', letterSpacing: '-0.4px' }}>Past sessions</h2>
+            <span style={{ fontSize: 13, color: '#993C1D', opacity: 0.5 }}>{SESSIONS.length} sessions</span>
+          </div>
+
+          <div style={{ display: 'flex', flexDirection: 'column', gap: 12 }}>
+            {SESSIONS.map((s, i) => (
+              <div key={i}
+                style={{ background: 'white', borderRadius: 16, padding: '18px 22px', display: 'flex', alignItems: 'center', gap: 18, boxShadow: '0 2px 16px rgba(216,90,48,0.06)', transition: 'transform .2s, box-shadow .2s', cursor: 'pointer' }}
+                onMouseEnter={e => { e.currentTarget.style.transform = 'translateX(5px)'; e.currentTarget.style.boxShadow = '0 6px 32px rgba(216,90,48,0.10)'; }}
+                onMouseLeave={e => { e.currentTarget.style.transform = ''; e.currentTarget.style.boxShadow = '0 2px 16px rgba(216,90,48,0.06)'; }}>
+
+                {/* subject pill */}
+                <div style={{ background: s.sb, color: s.sc, padding: '6px 18px', borderRadius: 99, fontWeight: 700, fontSize: 13, flexShrink: 0, letterSpacing: '0.1px' }}>
+                  {s.subject}
+                </div>
+
+                {/* topic + meta */}
+                <div style={{ flex: 1, minWidth: 0 }}>
+                  <div style={{ fontWeight: 600, color: '#4A1B0C', fontSize: 14.5, whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>{s.topic}</div>
+                  <div style={{ fontSize: 12, color: '#993C1D', opacity: 0.6, marginTop: 3 }}>{s.date} · {s.dur} · {s.msgs} exchanges</div>
+                </div>
+
+                {/* download */}
+                <button
+                  onClick={() => setDownloadedIdx(i)}
+                  style={{
+                    background: downloadedIdx === i ? '#E0F5EE' : '#FAECE7',
+                    color:      downloadedIdx === i ? '#1D9E75' : '#D85A30',
+                    padding: '8px 20px', borderRadius: 99, border: 'none', cursor: 'pointer',
+                    fontWeight: 700, fontSize: 12.5, fontFamily: 'Poppins', flexShrink: 0,
+                    transition: 'all .25s', display: 'flex', alignItems: 'center', gap: 6,
+                  }}>
+                  {downloadedIdx === i ? (
+                    <><svg width="13" height="13" viewBox="0 0 24 24" fill="none"><path d="M5 13l4 4L19 7" stroke="#1D9E75" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round"/></svg> Saved!</>
+                  ) : (
+                    <><svg width="13" height="13" viewBox="0 0 24 24" fill="none"><path d="M21 15v4a2 2 0 01-2 2H5a2 2 0 01-2-2v-4" stroke="#D85A30" strokeWidth="2" strokeLinecap="round"/><polyline points="7 10 12 15 17 10" stroke="#D85A30" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"/><line x1="12" y1="15" x2="12" y2="3" stroke="#D85A30" strokeWidth="2" strokeLinecap="round"/></svg> Download PDF</>
+                  )}
+                </button>
+              </div>
+            ))}
+          </div>
+        </div>
+
+        {/* ── Start new CTA ── */}
+        <div style={{ marginTop: 48, background: 'linear-gradient(130deg, #D85A30 0%, #EF9F27 100%)', borderRadius: 20, padding: '36px 40px', display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: 24 }}>
+          <div>
+            <div style={{ fontSize: 22, fontWeight: 800, color: 'white', marginBottom: 6, letterSpacing: '-0.4px' }}>Ready for today's session?</div>
+            <div style={{ color: 'rgba(255,255,255,0.82)', fontSize: 14 }}>Pick a subject and start learning right now.</div>
+          </div>
+          <button onClick={() => onNavigate('session')} style={{ background: 'white', color: '#D85A30', padding: '14px 36px', borderRadius: 99, border: 'none', cursor: 'pointer', fontWeight: 800, fontSize: 15, fontFamily: 'Poppins', flexShrink: 0, transition: 'transform .2s, box-shadow .2s' }}
+            onMouseEnter={e => { e.currentTarget.style.transform = 'scale(1.05)'; e.currentTarget.style.boxShadow = '0 8px 28px rgba(0,0,0,0.14)'; }}
+            onMouseLeave={e => { e.currentTarget.style.transform = ''; e.currentTarget.style.boxShadow = ''; }}>
+            Start session →
+          </button>
+        </div>
+      </div>
+    </div>
+  );
+};
+
+Object.assign(window, { DashboardPage });
+
+  </script>
+
+  <script type="text/babel">
+
+const { useState, useEffect } = React;
+
+const TWEAK_DEFAULTS = /*EDITMODE-BEGIN*/{
+  "page": "landing",
+  "orbDemo": "speaking",
+  "animationsOn": true
+}/*EDITMODE-END*/;
+
+const App = () => {
+  const [page, setPage] = useState(() => localStorage.getItem('tt-page') || 'landing');
+  const [tweaks, setTweaks] = useState(TWEAK_DEFAULTS);
+  const [showTweaks, setShowTweaks] = useState(false);
+
+  /* persist page */
+  useEffect(() => { localStorage.setItem('tt-page', page); }, [page]);
+
+  /* tweaks host protocol */
+  useEffect(() => {
+    const handler = (e) => {
+      if (e.data?.type === '__activate_edit_mode')   setShowTweaks(true);
+      if (e.data?.type === '__deactivate_edit_mode') setShowTweaks(false);
+    };
+    window.addEventListener('message', handler);
+    window.parent.postMessage({ type: '__edit_mode_available' }, '*');
+    return () => window.removeEventListener('message', handler);
+  }, []);
+
+  const updateTweak = (key, value) => {
+    const next = { ...tweaks, [key]: value };
+    setTweaks(next);
+    window.parent.postMessage({ type: '__edit_mode_set_keys', edits: { [key]: value } }, '*');
+    if (key === 'page') setPage(value);
+  };
+
+  /* disable animations globally */
+  useEffect(() => {
+    document.documentElement.style.setProperty(
+      '--anim-play', tweaks.animationsOn ? 'running' : 'paused'
+    );
+  }, [tweaks.animationsOn]);
+
+  return (
+    <div style={{ fontFamily: 'Poppins, sans-serif' }}>
+      {page === 'landing'    && <LandingPage    onNavigate={setPage} />}
+      {page === 'session'    && <SessionPage    onNavigate={setPage} />}
+      {page === 'dashboard'  && <DashboardPage  onNavigate={setPage} />}
+
+      {/* ── Tweaks panel ── */}
+      {showTweaks && (
+        <div style={{
+          position: 'fixed', bottom: 24, right: 24,
+          background: 'white', borderRadius: 20, padding: '24px',
+          boxShadow: '0 12px 60px rgba(74,27,12,0.14)',
+          zIndex: 9999, minWidth: 248,
+          border: '1.5px solid rgba(216,90,48,0.1)',
+        }}>
+          <div style={{ fontWeight: 800, color: '#4A1B0C', marginBottom: 20, fontSize: 15, letterSpacing: '-0.3px' }}>Tweaks</div>
+
+          {/* page nav */}
+          <div style={{ marginBottom: 18 }}>
+            <div style={{ fontSize: 11, color: '#993C1D', fontWeight: 700, marginBottom: 10, letterSpacing: '1.5px', textTransform: 'uppercase' }}>Page</div>
+            <div style={{ display: 'flex', flexDirection: 'column', gap: 6 }}>
+              {[['landing','Landing page'],['session','Session (live)'],['dashboard','Dashboard']].map(([p, label]) => (
+                <button key={p} onClick={() => updateTweak('page', p)} style={{
+                  padding: '8px 16px', borderRadius: 10, border: 'none', cursor: 'pointer',
+                  textAlign: 'left', fontSize: 13, fontWeight: 600, fontFamily: 'Poppins',
+                  background: page === p ? 'linear-gradient(90deg,#D85A30,#EF9F27)' : '#FAECE7',
+                  color: page === p ? 'white' : '#D85A30',
+                  transition: 'all .2s',
+                }}>{label}</button>
+              ))}
+            </div>
+          </div>
+
+          {/* orb state demo (only on session page) */}
+          {page === 'session' && (
+            <div style={{ marginBottom: 18 }}>
+              <div style={{ fontSize: 11, color: '#993C1D', fontWeight: 700, marginBottom: 10, letterSpacing: '1.5px', textTransform: 'uppercase' }}>Orb state</div>
+              <div style={{ display: 'flex', flexWrap: 'wrap', gap: 6 }}>
+                {['idle','listening','speaking','interrupted'].map(s => (
+                  <button key={s} onClick={() => updateTweak('orbDemo', s)} style={{
+                    padding: '6px 12px', borderRadius: 8, border: 'none', cursor: 'pointer',
+                    fontSize: 11, fontWeight: 700, fontFamily: 'Poppins', transition: 'all .2s',
+                    background: tweaks.orbDemo === s ? '#D85A30' : '#FAECE7',
+                    color: tweaks.orbDemo === s ? 'white' : '#D85A30',
+                  }}>{s}</button>
+                ))}
+              </div>
+            </div>
+          )}
+
+          {/* animations toggle */}
+          <div>
+            <div style={{ fontSize: 11, color: '#993C1D', fontWeight: 700, marginBottom: 10, letterSpacing: '1.5px', textTransform: 'uppercase' }}>Animations</div>
+            <button onClick={() => updateTweak('animationsOn', !tweaks.animationsOn)} style={{
+              padding: '8px 16px', borderRadius: 10, border: 'none', cursor: 'pointer',
+              fontSize: 13, fontWeight: 600, fontFamily: 'Poppins',
+              background: tweaks.animationsOn ? '#E0F5EE' : '#FAECE7',
+              color: tweaks.animationsOn ? '#1D9E75' : '#D85A30',
+              transition: 'all .2s', width: '100%', textAlign: 'left',
+            }}>
+              {tweaks.animationsOn ? '✓ Animations on' : '✗ Animations off'}
+            </button>
+          </div>
+        </div>
+      )}
+    </div>
+  );
+};
+
+ReactDOM.createRoot(document.getElementById('root')).render(<App />);
+
+  </script>
+
+  <template id="__bundler_thumbnail">
+    <svg viewBox="0 0 120 80" xmlns="http://www.w3.org/2000/svg">
+      <rect width="120" height="80" fill="#FFFBF7"/>
+      <circle cx="60" cy="36" r="18" fill="url(#og)"/>
+      <circle cx="60" cy="36" r="24" fill="none" stroke="#D85A30" stroke-width="1.5" opacity="0.4"/>
+      <circle cx="60" cy="36" r="30" fill="none" stroke="#D85A30" stroke-width="1" opacity="0.2"/>
+      <rect x="56" y="30" width="3" height="12" rx="1.5" fill="white"/>
+      <rect x="61" y="28" width="3" height="16" rx="1.5" fill="white"/>
+      <rect x="66" y="32" width="3" height="8" rx="1.5" fill="white"/>
+      <text x="60" y="66" text-anchor="middle" font-family="sans-serif" font-size="7" fill="#4A1B0C" font-weight="700">TutorTalk</text>
+      <defs><linearGradient id="og" x1="0%" y1="0%" x2="100%" y2="100%"><stop offset="0%" stop-color="#D85A30"/><stop offset="100%" stop-color="#EF9F27"/></linearGradient></defs>
+    </svg>
+  </template>
+</body>
+</html>
