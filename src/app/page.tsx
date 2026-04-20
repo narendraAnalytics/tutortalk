@@ -102,9 +102,7 @@ export default function LandingPage() {
       {/* ── Nav ── */}
       <nav style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', padding: '22px 52px', position: 'relative', zIndex: 20 }}>
         <Link href="/" style={{ display: 'flex', alignItems: 'center', gap: 10, textDecoration: 'none' }}>
-          <div style={{ width: 38, height: 38, borderRadius: '50%', background: 'linear-gradient(135deg,#D85A30,#EF9F27)', display: 'flex', alignItems: 'center', justifyContent: 'center', boxShadow: '0 4px 16px rgba(216,90,48,0.3)' }}>
-            <span style={{ color: '#FFFBF7', fontWeight: 800, fontSize: 17, fontFamily: 'var(--font-poppins)' }}>T</span>
-          </div>
+          <img src="https://res.cloudinary.com/dkqbzwicr/image/upload/q_auto/f_auto/v1776668144/logotutortalk_ecmdbm.png" alt="TutorTalk" style={{ width: 48, height: 48, objectFit: 'contain' }} />
           <span style={{ fontSize: 21, fontWeight: 800, color: '#4A1B0C', letterSpacing: '-0.4px', fontFamily: 'var(--font-poppins)' }}>TutorTalk</span>
         </Link>
 

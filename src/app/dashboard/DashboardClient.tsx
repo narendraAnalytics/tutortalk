@@ -52,9 +52,7 @@ export default function DashboardClient({ firstName }: { firstName: string }) {
       {/* ── Nav ── */}
       <div style={{ padding: '0 36px', height: 68, display: 'flex', alignItems: 'center', justifyContent: 'space-between', borderBottom: '1.5px solid rgba(216,90,48,0.08)', background: '#FFF8F3', flexShrink: 0 }}>
         <Link href="/" style={{ display: 'flex', alignItems: 'center', gap: 10, textDecoration: 'none' }}>
-          <div style={{ width: 34, height: 34, borderRadius: '50%', background: 'linear-gradient(135deg,#D85A30,#EF9F27)', display: 'flex', alignItems: 'center', justifyContent: 'center', boxShadow: '0 3px 12px rgba(216,90,48,0.28)' }}>
-            <span style={{ color: '#FFFBF7', fontWeight: 800, fontSize: 15, fontFamily: 'var(--font-poppins)' }}>T</span>
-          </div>
+          <img src="https://res.cloudinary.com/dkqbzwicr/image/upload/q_auto/f_auto/v1776668144/logotutortalk_ecmdbm.png" alt="TutorTalk" style={{ width: 34, height: 34, objectFit: 'contain' }} />
           <span style={{ fontSize: 18, fontWeight: 800, color: '#4A1B0C', letterSpacing: '-0.4px', fontFamily: 'var(--font-poppins)' }}>TutorTalk</span>
         </Link>
         <Link href="/session" className="cta-btn" style={{ color: '#FFFBF7', padding: '10px 26px', borderRadius: 99, textDecoration: 'none', fontWeight: 700, fontSize: 14, fontFamily: 'var(--font-poppins)' }}>

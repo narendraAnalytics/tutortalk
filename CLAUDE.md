@@ -1,8 +1,13 @@
 ### Skill
 For ALL frontend/UI work — landing page, dashboard, components, emails — use the skill at:
 `C:\Users\ES\.claude\skills\nextstack.skill`
-
 ---
+### Deployed In Vercel :
+
+      https://tutortalk.vercel.app/
+
+---- 
+
 
 # TutorTalk — Live Voice AI Tutor
 

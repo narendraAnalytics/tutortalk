@@ -18,6 +18,10 @@ export const metadata: Metadata = {
   title: "TutorTalk — Your 24/7 AI Voice Tutor",
   description:
     "AI-powered Socratic voice tutor. Speak your doubts, get guided to answers. Sessions end with a downloadable PDF report.",
+  icons: {
+    icon: "https://res.cloudinary.com/dkqbzwicr/image/upload/q_auto/f_auto/v1776668144/logotutortalk_ecmdbm.png",
+    apple: "https://res.cloudinary.com/dkqbzwicr/image/upload/q_auto/f_auto/v1776668144/logotutortalk_ecmdbm.png",
+  },
 };
 
 export default function RootLayout({
