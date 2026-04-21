@@ -123,7 +123,6 @@ export default function LandingPage() {
         <div style={{ display: 'flex', gap: 20, alignItems: 'center' }}>
           {isSignedIn ? (
             <>
-              <Link href="/dashboard" style={{ color: '#993C1D', fontWeight: 500, textDecoration: 'none', fontSize: 15, opacity: 0.85 }}>Dashboard</Link>
               <Link href="/session" className="cta-btn" style={{ color: '#FFFBF7', padding: '11px 28px', borderRadius: 99, textDecoration: 'none', fontWeight: 700, fontSize: 14, fontFamily: 'var(--font-poppins)' }}>
                 New session
               </Link>
@@ -169,7 +168,7 @@ export default function LandingPage() {
 
           <div style={{ display: 'flex', gap: 14, marginBottom: 72, alignItems: 'center', flexWrap: 'wrap', justifyContent: 'center' }}>
             {isSignedIn ? (
-              <Link href="/session" className="cta-btn" style={{ color: '#FFFBF7', padding: '18px 50px', borderRadius: 99, textDecoration: 'none', fontWeight: 700, fontSize: 18, fontFamily: 'var(--font-poppins)', letterSpacing: '-0.3px', display: 'inline-block' }}>
+              <Link href="/dashboard" className="cta-btn" style={{ color: '#FFFBF7', padding: '18px 50px', borderRadius: 99, textDecoration: 'none', fontWeight: 700, fontSize: 18, fontFamily: 'var(--font-poppins)', letterSpacing: '-0.3px', display: 'inline-block' }}>
                 Start learning free
               </Link>
             ) : (
