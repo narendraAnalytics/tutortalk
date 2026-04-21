@@ -114,7 +114,7 @@ export default function LandingPage() {
     <div className="page-in" style={{ minHeight: '100vh', background: '#FFFBF7', overflowX: 'hidden' }}>
 
       {/* ── Nav ── */}
-      <nav style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', padding: '22px 52px', position: 'relative', zIndex: 20 }}>
+      <nav className="tt-nav" style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', position: 'relative', zIndex: 20 }}>
         <Link href="/" style={{ display: 'flex', alignItems: 'center', gap: 10, textDecoration: 'none' }}>
           <img src="https://res.cloudinary.com/dkqbzwicr/image/upload/q_auto/f_auto/v1776668144/logotutortalk_ecmdbm.png" alt="TutorTalk" style={{ width: 48, height: 48, objectFit: 'contain' }} />
           <span style={{ fontSize: 21, fontWeight: 800, color: '#4A1B0C', letterSpacing: '-0.4px', fontFamily: 'var(--font-poppins)' }}>TutorTalk</span>
@@ -139,9 +139,9 @@ export default function LandingPage() {
       </nav>
 
       {/* ── Hero ── */}
-      <section style={{ position: 'relative', padding: '40px 52px 80px', textAlign: 'center', display: 'flex', flexDirection: 'column', alignItems: 'center' }}>
-        <div style={{ position: 'absolute', top: -80, right: -100, width: 560, height: 560, borderRadius: '50%', background: 'radial-gradient(circle, rgba(216,90,48,0.09) 0%, transparent 65%)', animation: 'blob-drift 11s ease-in-out infinite', pointerEvents: 'none', zIndex: 0 }} />
-        <div style={{ position: 'absolute', bottom: -80, left: -120, width: 640, height: 640, borderRadius: '50%', background: 'radial-gradient(circle, rgba(127,119,221,0.07) 0%, transparent 65%)', animation: 'blob-drift 15s ease-in-out reverse infinite', pointerEvents: 'none', zIndex: 0 }} />
+      <section className="tt-section" style={{ position: 'relative', paddingTop: 40, paddingBottom: 80, textAlign: 'center', display: 'flex', flexDirection: 'column', alignItems: 'center' }}>
+        <div className="tt-blob-hide" style={{ position: 'absolute', top: -80, right: -100, width: 560, height: 560, borderRadius: '50%', background: 'radial-gradient(circle, rgba(216,90,48,0.09) 0%, transparent 65%)', animation: 'blob-drift 11s ease-in-out infinite', pointerEvents: 'none', zIndex: 0 }} />
+        <div className="tt-blob-hide" style={{ position: 'absolute', bottom: -80, left: -120, width: 640, height: 640, borderRadius: '50%', background: 'radial-gradient(circle, rgba(127,119,221,0.07) 0%, transparent 65%)', animation: 'blob-drift 15s ease-in-out reverse infinite', pointerEvents: 'none', zIndex: 0 }} />
         <div style={{ position: 'absolute', top: '35%', left: '3%', width: 360, height: 360, borderRadius: '50%', background: 'radial-gradient(circle, rgba(29,158,117,0.06) 0%, transparent 65%)', animation: 'blob-drift 13s ease-in-out 2s infinite', pointerEvents: 'none', zIndex: 0 }} />
 
         <div style={{ position: 'relative', zIndex: 1, display: 'flex', flexDirection: 'column', alignItems: 'center' }}>
@@ -168,12 +168,12 @@ export default function LandingPage() {
 
           <div style={{ display: 'flex', gap: 14, marginBottom: 72, alignItems: 'center', flexWrap: 'wrap', justifyContent: 'center' }}>
             {isSignedIn ? (
-              <Link href="/dashboard" className="cta-btn" style={{ color: '#FFFBF7', padding: '18px 50px', borderRadius: 99, textDecoration: 'none', fontWeight: 700, fontSize: 18, fontFamily: 'var(--font-poppins)', letterSpacing: '-0.3px', display: 'inline-block' }}>
+              <Link href="/dashboard" className="cta-btn" style={{ color: '#FFFBF7', padding: 'clamp(14px,2vw,18px) clamp(24px,4vw,50px)', borderRadius: 99, textDecoration: 'none', fontWeight: 700, fontSize: 'clamp(15px,2vw,18px)', fontFamily: 'var(--font-poppins)', letterSpacing: '-0.3px', display: 'inline-block' }}>
                 Start learning free
               </Link>
             ) : (
               <SignInButton>
-                <button className="cta-btn" style={{ color: '#FFFBF7', padding: '18px 50px', borderRadius: 99, border: 'none', cursor: 'pointer', fontWeight: 700, fontSize: 18, fontFamily: 'var(--font-poppins)', letterSpacing: '-0.3px' }}>
+                <button className="cta-btn" style={{ color: '#FFFBF7', padding: 'clamp(14px,2vw,18px) clamp(24px,4vw,50px)', borderRadius: 99, border: 'none', cursor: 'pointer', fontWeight: 700, fontSize: 'clamp(15px,2vw,18px)', fontFamily: 'var(--font-poppins)', letterSpacing: '-0.3px' }}>
                   Start learning free
                 </button>
               </SignInButton>
@@ -191,7 +191,7 @@ export default function LandingPage() {
       </section>
 
       {/* ── Subject chips ── */}
-      <section style={{ padding: '20px 52px 72px', textAlign: 'center' }}>
+      <section className="tt-section" style={{ paddingTop: 20, paddingBottom: 72, textAlign: 'center' }}>
         <p style={{ color: '#993C1D', fontWeight: 600, marginBottom: 28, fontSize: 12, letterSpacing: '2.5px', textTransform: 'uppercase', opacity: 0.55 }}>covers every subject</p>
         <div style={{ display: 'flex', gap: 14, justifyContent: 'center', flexWrap: 'wrap' }}>
           {SUBJECTS.map((s, i) => (
@@ -213,9 +213,9 @@ export default function LandingPage() {
       </section>
 
       {/* ── Features ── */}
-      <section style={{ padding: '20px 52px 96px' }}>
-        <h2 style={{ textAlign: 'center', fontSize: 40, fontWeight: 700, color: '#4A1B0C', marginBottom: 52, letterSpacing: '-1px', fontFamily: 'var(--font-poppins)' }}>Why TutorTalk works</h2>
-        <div style={{ display: 'grid', gridTemplateColumns: 'repeat(3, 1fr)', gap: 24, maxWidth: 1020, margin: '0 auto' }}>
+      <section className="tt-section" style={{ paddingTop: 20, paddingBottom: 96 }}>
+        <h2 style={{ textAlign: 'center', fontSize: 'clamp(26px, 4vw, 40px)', fontWeight: 700, color: '#4A1B0C', marginBottom: 52, letterSpacing: '-1px', fontFamily: 'var(--font-poppins)' }}>Why TutorTalk works</h2>
+        <div className="tt-grid-3" style={{ maxWidth: 1020, margin: '0 auto' }}>
           {FEATURES.map((f, i) => (
             <div key={i}
               style={{ background: '#FFF8F3', borderRadius: 20, padding: '36px 30px', boxShadow: '0 2px 24px rgba(216,90,48,0.07)', transition: 'transform 0.22s, box-shadow 0.22s', cursor: 'default' }}
@@ -233,9 +233,9 @@ export default function LandingPage() {
       </section>
 
       {/* ── Testimonials ── */}
-      <section style={{ padding: '20px 52px 100px', background: 'linear-gradient(180deg, #FFFBF7 0%, #FFF4EE 100%)' }}>
-        <h2 style={{ textAlign: 'center', fontSize: 36, fontWeight: 700, color: '#4A1B0C', marginBottom: 52, letterSpacing: '-0.8px', fontFamily: 'var(--font-poppins)' }}>Students love it</h2>
-        <div style={{ display: 'grid', gridTemplateColumns: 'repeat(3, 1fr)', gap: 24, maxWidth: 1020, margin: '0 auto' }}>
+      <section className="tt-section" style={{ paddingTop: 20, paddingBottom: 100, background: 'linear-gradient(180deg, #FFFBF7 0%, #FFF4EE 100%)' }}>
+        <h2 style={{ textAlign: 'center', fontSize: 'clamp(24px, 4vw, 36px)', fontWeight: 700, color: '#4A1B0C', marginBottom: 52, letterSpacing: '-0.8px', fontFamily: 'var(--font-poppins)' }}>Students love it</h2>
+        <div className="tt-grid-3" style={{ maxWidth: 1020, margin: '0 auto' }}>
           {TESTIMONIALS.map((t, i) => (
             <div key={i} style={{ background: '#FFF8F3', borderRadius: 22, padding: '30px', boxShadow: '0 4px 28px rgba(216,90,48,0.08)', animation: `float-y ${4 + i * 1.2}s ease-in-out ${t.delay} infinite` }}>
               <div style={{ fontSize: 28, color: '#D85A30', marginBottom: 14, opacity: 0.4, fontFamily: 'Georgia, serif', lineHeight: 1 }}>"</div>
@@ -253,18 +253,18 @@ export default function LandingPage() {
       </section>
 
       {/* ── Footer CTA ── */}
-      <section style={{ textAlign: 'center', padding: '84px 52px', background: 'linear-gradient(130deg, #D85A30 0%, #EF9F27 100%)', position: 'relative', overflow: 'hidden' }}>
+      <section className="tt-section" style={{ textAlign: 'center', paddingTop: 84, paddingBottom: 84, background: 'linear-gradient(130deg, #D85A30 0%, #EF9F27 100%)', position: 'relative', overflow: 'hidden' }}>
         <div style={{ position: 'absolute', inset: 0, background: 'radial-gradient(circle at 25% 50%, rgba(255,255,255,0.12) 0%, transparent 55%)', pointerEvents: 'none' }} />
         <div style={{ position: 'absolute', inset: 0, background: 'radial-gradient(circle at 80% 60%, rgba(255,255,255,0.07) 0%, transparent 45%)', pointerEvents: 'none' }} />
-        <h2 style={{ fontSize: 50, fontWeight: 800, color: '#FFFBF7', marginBottom: 18, position: 'relative', letterSpacing: '-1.5px', fontFamily: 'var(--font-poppins)' }}>Ready to understand more?</h2>
-        <p style={{ color: 'rgba(255,251,247,0.88)', fontSize: 18, marginBottom: 44, position: 'relative' }}>Join 10,000+ students learning smarter every day.</p>
+        <h2 style={{ fontSize: 'clamp(28px, 5vw, 50px)', fontWeight: 800, color: '#FFFBF7', marginBottom: 18, position: 'relative', letterSpacing: '-1.5px', fontFamily: 'var(--font-poppins)' }}>Ready to understand more?</h2>
+        <p style={{ color: 'rgba(255,251,247,0.88)', fontSize: 'clamp(15px, 2.5vw, 18px)', marginBottom: 44, position: 'relative' }}>Join 10,000+ students learning smarter every day.</p>
         {isSignedIn ? (
-          <Link href="/session" style={{ background: '#FFFBF7', color: '#D85A30', padding: '20px 56px', borderRadius: 99, textDecoration: 'none', fontWeight: 800, fontSize: 18, fontFamily: 'var(--font-poppins)', display: 'inline-block', position: 'relative', letterSpacing: '-0.3px', transition: 'transform 0.2s, box-shadow 0.2s' }}>
+          <Link href="/session" style={{ background: '#FFFBF7', color: '#D85A30', padding: 'clamp(14px,2.5vw,20px) clamp(28px,5vw,56px)', borderRadius: 99, textDecoration: 'none', fontWeight: 800, fontSize: 'clamp(15px,2vw,18px)', fontFamily: 'var(--font-poppins)', display: 'inline-block', position: 'relative', letterSpacing: '-0.3px', transition: 'transform 0.2s, box-shadow 0.2s' }}>
             Start for free →
           </Link>
         ) : (
           <SignUpButton>
-            <button style={{ background: '#FFFBF7', color: '#D85A30', padding: '20px 56px', borderRadius: 99, border: 'none', cursor: 'pointer', fontWeight: 800, fontSize: 18, fontFamily: 'var(--font-poppins)', transition: 'transform 0.2s, box-shadow 0.2s', position: 'relative', letterSpacing: '-0.3px' }}>
+            <button style={{ background: '#FFFBF7', color: '#D85A30', padding: 'clamp(14px,2.5vw,20px) clamp(28px,5vw,56px)', borderRadius: 99, border: 'none', cursor: 'pointer', fontWeight: 800, fontSize: 'clamp(15px,2vw,18px)', fontFamily: 'var(--font-poppins)', transition: 'transform 0.2s, box-shadow 0.2s', position: 'relative', letterSpacing: '-0.3px' }}>
               Start for free →
             </button>
           </SignUpButton>

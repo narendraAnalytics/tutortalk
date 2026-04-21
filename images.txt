@@ -16,6 +16,4 @@ The voice session has a hard dependency chain:
 
  Crystal clear. The middleware is at ./middleware.ts but with a src/ project it must be at ./src/middleware.ts.
 
- https://github.com/jaydanurwin/gemini-live-agent-demo
-
-  Key Topics and Subtopics 
+ https://github.com/jaydanurwin/gemini-live-agent-deok now we make the website resposnvie that suited for smartphones and tabs also . Make sure don't distrub the working code.     

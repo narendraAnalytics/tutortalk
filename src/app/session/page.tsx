@@ -518,7 +518,7 @@ export default function SessionPage() {
     <div style={{ height: '100vh', background: '#FFFBF7', display: 'flex', flexDirection: 'column', overflow: 'hidden' }}>
 
       {/* Top bar */}
-      <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', padding: '16px 28px', borderBottom: '1px solid #F2E4DB', flexShrink: 0 }}>
+      <div className="tt-session-topbar" style={{ borderBottom: '1px solid #F2E4DB' }}>
         <div style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
           <img
             src="https://res.cloudinary.com/dkqbzwicr/image/upload/q_auto/f_auto/v1776668144/logotutortalk_ecmdbm.png"
@@ -537,9 +537,9 @@ export default function SessionPage() {
             )}
           </div>
         </div>
-        <div style={{ display: 'flex', alignItems: 'center', gap: 18 }}>
+        <div className="tt-session-topbar-right">
           <span style={{ fontSize: 11, fontWeight: 700, color: '#993C1D', opacity: 0.5 }}>{difficulty}</span>
-          <span style={{ fontSize: 20, fontWeight: 800, color: '#4A1B0C', fontVariantNumeric: 'tabular-nums', letterSpacing: '0.5px' }}>
+          <span style={{ fontSize: 'clamp(15px, 2.5vw, 20px)', fontWeight: 800, color: '#4A1B0C', fontVariantNumeric: 'tabular-nums', letterSpacing: '0.5px' }}>
             {fmtTime(duration)}
           </span>
           <button

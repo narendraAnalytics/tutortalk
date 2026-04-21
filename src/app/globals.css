@@ -183,3 +183,53 @@
 .eq-bar:nth-child(4) { animation-delay: 0.3s; }
 .eq-bar:nth-child(5) { animation-delay: 0.4s; }
 .page-in { animation: page-fade 0.45s ease both; }
+
+/* ── Responsive helpers ──────────────────────────────────────────────────── */
+.tt-nav {
+  padding: 22px clamp(18px, 4vw, 52px);
+}
+.tt-section {
+  padding-left: clamp(18px, 4vw, 52px);
+  padding-right: clamp(18px, 4vw, 52px);
+}
+.tt-grid-3 {
+  display: grid;
+  grid-template-columns: repeat(3, 1fr);
+  gap: 24px;
+}
+.tt-grid-3-metric {
+  display: grid;
+  grid-template-columns: repeat(3, 1fr);
+  gap: 18px;
+}
+.tt-cta-banner {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 24px;
+}
+.tt-session-topbar {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 16px clamp(14px, 3vw, 28px);
+  flex-shrink: 0;
+}
+.tt-session-topbar-right {
+  display: flex;
+  align-items: center;
+  gap: 18px;
+}
+
+@media (max-width: 1024px) {
+  .tt-grid-3        { grid-template-columns: repeat(2, 1fr); }
+  .tt-grid-3-metric { grid-template-columns: repeat(2, 1fr); }
+}
+
+@media (max-width: 640px) {
+  .tt-grid-3        { grid-template-columns: 1fr; }
+  .tt-grid-3-metric { grid-template-columns: repeat(2, 1fr); }
+  .tt-blob-hide     { display: none; }
+  .tt-cta-banner    { flex-direction: column; text-align: center; }
+  .tt-session-topbar-right { flex-wrap: wrap; gap: 10px; justify-content: flex-end; }
+}

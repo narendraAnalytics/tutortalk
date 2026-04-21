@@ -211,13 +211,13 @@ export default function DashboardClient({ firstName, sessions, totalSessions, to
       <div style={{ minHeight: '100vh', background: '#FFFBF7', position: 'relative', overflow: 'hidden' }}>
 
         {/* ── Floating background orbs ── */}
-        <div style={{
+        <div className="tt-blob-hide" style={{
           position: 'fixed', top: -120, right: -80, width: 520, height: 520,
           borderRadius: '50%',
           background: 'radial-gradient(circle, #EF9F2740 0%, #D85A3018 50%, transparent 70%)',
           animation: 'floatA 12s ease-in-out infinite', pointerEvents: 'none', zIndex: 0,
         }} />
-        <div style={{
+        <div className="tt-blob-hide" style={{
           position: 'fixed', bottom: -100, left: -60, width: 440, height: 440,
           borderRadius: '50%',
           background: 'radial-gradient(circle, #7F77DD30 0%, #D4537E15 50%, transparent 70%)',
@@ -231,9 +231,9 @@ export default function DashboardClient({ firstName, sessions, totalSessions, to
         }} />
 
         {/* ── Nav ── */}
-        <div style={{
+        <div className="tt-section" style={{
           position: 'relative', zIndex: 10,
-          padding: '0 36px', height: 68,
+          paddingTop: 0, paddingBottom: 0, height: 68,
           display: 'flex', alignItems: 'center', justifyContent: 'space-between',
           background: 'rgba(255,248,243,0.75)',
           backdropFilter: 'blur(16px)',
@@ -254,7 +254,7 @@ export default function DashboardClient({ firstName, sessions, totalSessions, to
         {/* ── Animated line accent ── */}
         <div className="line-accent" style={{ position: 'relative', zIndex: 10 }} />
 
-        <div style={{ position: 'relative', zIndex: 10, maxWidth: 940, margin: '0 auto', padding: '52px 36px 80px' }}>
+        <div className="tt-section" style={{ position: 'relative', zIndex: 10, maxWidth: 940, margin: '0 auto', paddingTop: 52, paddingBottom: 80 }}>
 
           {/* ── Greeting ── */}
           <div style={{ marginBottom: 48, animation: 'fadeUp .6s ease backwards' }}>
@@ -264,7 +264,7 @@ export default function DashboardClient({ firstName, sessions, totalSessions, to
                 {new Date().toLocaleDateString('en-IN', { weekday: 'long', day: 'numeric', month: 'long' })}
               </span>
             </div>
-            <h1 style={{ fontSize: 42, fontWeight: 800, letterSpacing: '-1.2px', marginBottom: 10, fontFamily: 'var(--font-poppins)', lineHeight: 1.1 }}>
+            <h1 style={{ fontSize: 'clamp(26px, 5vw, 42px)', fontWeight: 800, letterSpacing: '-1.2px', marginBottom: 10, fontFamily: 'var(--font-poppins)', lineHeight: 1.1 }}>
               <span style={{ color: '#4A1B0C' }}>{greeting}, </span>
               <span className="greeting-name">{firstName}!</span>
             </h1>
@@ -276,7 +276,7 @@ export default function DashboardClient({ firstName, sessions, totalSessions, to
           </div>
 
           {/* ── Metric cards ── */}
-          <div style={{ display: 'grid', gridTemplateColumns: 'repeat(3, 1fr)', gap: 18, marginBottom: 52 }}>
+          <div className="tt-grid-3-metric" style={{ marginBottom: 52 }}>
             {METRICS.map((m, i) => (
               <div
                 key={i}
@@ -420,13 +420,13 @@ export default function DashboardClient({ firstName, sessions, totalSessions, to
           </div>
 
           {/* ── Bottom CTA ── */}
-          <div style={{
-            marginTop: 52, borderRadius: 24, padding: '38px 44px',
-            display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: 24,
-            position: 'relative', overflow: 'hidden',
-            animation: 'fadeUp .6s .5s ease backwards',
-          }}
-            className="cta-banner"
+          <div
+            className="cta-banner tt-cta-banner"
+            style={{
+              marginTop: 52, borderRadius: 24, padding: 'clamp(22px,4vw,38px) clamp(22px,4vw,44px)',
+              position: 'relative', overflow: 'hidden',
+              animation: 'fadeUp .6s .5s ease backwards',
+            }}
           >
             {/* Sparkle dots in banner */}
             {[[12, 18, '#FFFBF7', '0s'], [60, 70, '#EF9F27', '1.2s'], [80, 30, '#FFFBF7', '0.6s'], [25, 65, '#FFFBF7', '1.8s']].map(([t, r, c, d], i) => (

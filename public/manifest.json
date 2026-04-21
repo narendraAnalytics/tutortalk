@@ -1,0 +1,22 @@
+{
+  "name": "TutorTalk",
+  "short_name": "TutorTalk",
+  "description": "AI-powered Socratic voice tutor",
+  "start_url": "/",
+  "display": "standalone",
+  "background_color": "#FFFBF7",
+  "theme_color": "#D85A30",
+  "orientation": "portrait",
+  "icons": [
+    {
+      "src": "https://res.cloudinary.com/dkqbzwicr/image/upload/q_auto/f_auto/v1776668144/logotutortalk_ecmdbm.png",
+      "sizes": "192x192",
+      "type": "image/png"
+    },
+    {
+      "src": "https://res.cloudinary.com/dkqbzwicr/image/upload/q_auto/f_auto/v1776668144/logotutortalk_ecmdbm.png",
+      "sizes": "512x512",
+      "type": "image/png"
+    }
+  ]
+}
