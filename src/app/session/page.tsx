@@ -133,7 +133,9 @@ ${level === 'class10' ? `   - Use simple, everyday language. Avoid heavy formula
    - Connect new concepts to ones the student has already learned.
    - Be warm, encouraging, and celebrate correct reasoning.
 
-Speak naturally and conversationally — you are a knowledgeable friend helping the student truly understand, not just memorize.`;
+Speak naturally and conversationally — you are a knowledgeable friend helping the student truly understand, not just memorize.
+
+IMPORTANT: Begin the session IMMEDIATELY by greeting the student warmly as described above. Do not wait for the student to speak first — start talking right away.`;
 }
 
 export default function SessionPage() {
@@ -244,15 +246,15 @@ export default function SessionPage() {
             }
 
             // User speech — show live then add to transcript
-            if (msg.inputAudioTranscription?.text?.trim()) {
-              const t = msg.inputAudioTranscription.text.trim();
+            if (sc?.inputTranscription?.text?.trim()) {
+              const t = sc.inputTranscription.text.trim();
               setTranscript(prev => [...prev, { role: 'user', text: t }]);
               setLiveCaption({ role: 'user', text: t });
             }
 
             // AI speech — accumulate and stream into live caption
-            if (msg.outputAudioTranscription?.text?.trim()) {
-              const chunk = msg.outputAudioTranscription.text.trim();
+            if (sc?.outputTranscription?.text?.trim()) {
+              const chunk = sc.outputTranscription.text.trim();
               aiBufferRef.current += (aiBufferRef.current ? ' ' : '') + chunk;
               setLiveCaption({ role: 'ai', text: aiBufferRef.current });
             }
@@ -267,7 +269,7 @@ export default function SessionPage() {
               }
               // Text parts fallback (no outputAudioTranscription available)
               const partText = part.text?.trim();
-              if (partText && !msg.outputAudioTranscription?.text) {
+              if (partText && !sc?.outputTranscription?.text) {
                 aiBufferRef.current += (aiBufferRef.current ? ' ' : '') + partText;
                 setLiveCaption({ role: 'ai', text: aiBufferRef.current });
               }
@@ -293,12 +295,6 @@ export default function SessionPage() {
       } as any);
 
       sessionRef.current = session;
-
-      const levelLabel = LEVELS.find(l => l.id === level)?.label ?? level;
-      const topicLine = topic.trim() ? ` on the topic "${topic.trim()}"` : '';
-      session.sendRealtimeInput({
-        text: `Greet the student warmly. Let them know you're their ${levelLabel} ${subject} tutor${topicLine}. Tell them the difficulty is set to ${difficulty}. Ask them what they'd like to learn or which specific concept or problem they want help with today.`,
-      });
 
     } catch (err: unknown) {
       setError(err instanceof Error ? err.message : 'Failed to start session');
@@ -548,43 +544,45 @@ export default function SessionPage() {
         </div>
       </div>
 
-      {/* Orb + transcript */}
-      <div style={{ flex: 1, display: 'flex', flexDirection: 'column', alignItems: 'center', overflow: 'hidden' }}>
-        <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', paddingTop: 24, paddingBottom: 4, flexShrink: 0, width: '100%' }}>
+      {/* ── Side-by-side: orb left, transcript right ── */}
+      <div style={{ flex: 1, display: 'flex', overflow: 'hidden' }}>
+
+        {/* ── Left: Orb panel ── */}
+        <div style={{
+          width: 300, flexShrink: 0, overflow: 'hidden',
+          display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center',
+          borderRight: '1px solid #F2E4DB', padding: '0 12px',
+        }}>
           <VoiceOrb state={orbState} size="lg" />
+
           <p style={{
-            marginTop: 6, fontWeight: 600, fontSize: 15,
+            marginTop: -56, position: 'relative', zIndex: 1,
+            fontWeight: 600, fontSize: 14, textAlign: 'center',
             color: orbState === 'listening' ? '#1D9E75' : orbState === 'speaking' ? '#D85A30' : orbState === 'interrupted' ? '#EF9F27' : '#993C1D',
             transition: 'color 0.3s ease',
           }}>
             {STATUS_LABEL[orbState]}
           </p>
 
-          {/* ── Live caption box ── */}
+          {/* Live caption */}
           <div style={{
-            marginTop: 14, width: '100%', maxWidth: 600, padding: '0 20px',
-            minHeight: 64, transition: 'opacity 0.3s ease',
-            opacity: liveCaption ? 1 : 0,
-            pointerEvents: 'none',
+            marginTop: 10, width: '100%', position: 'relative', zIndex: 1,
+            transition: 'opacity 0.3s ease', opacity: liveCaption ? 1 : 0, pointerEvents: 'none', minHeight: 56,
           }}>
             {liveCaption && (
               <div style={{
                 background: liveCaption.role === 'ai' ? '#FFF3EC' : '#EEEDFE',
                 border: `1.5px solid ${liveCaption.role === 'ai' ? '#F2E4DB' : '#D6D3F7'}`,
-                borderRadius: 16, padding: '10px 16px',
+                borderRadius: 14, padding: '9px 13px',
                 boxShadow: '0 2px 12px rgba(216,90,48,0.08)',
               }}>
                 <span style={{
-                  fontSize: 10, fontWeight: 800, letterSpacing: '0.08em', textTransform: 'uppercase',
-                  color: liveCaption.role === 'ai' ? '#D85A30' : '#7F77DD',
-                  display: 'block', marginBottom: 4,
+                  fontSize: 9, fontWeight: 800, letterSpacing: '0.08em', textTransform: 'uppercase',
+                  color: liveCaption.role === 'ai' ? '#D85A30' : '#7F77DD', display: 'block', marginBottom: 3,
                 }}>
                   {liveCaption.role === 'ai' ? '🎙 TutorTalk' : '🎤 You'}
                 </span>
-                <span style={{
-                  fontSize: 13.5, color: liveCaption.role === 'ai' ? '#4A1B0C' : '#26215C',
-                  lineHeight: 1.5, fontWeight: 500,
-                }}>
+                <span style={{ fontSize: 12.5, color: liveCaption.role === 'ai' ? '#4A1B0C' : '#26215C', lineHeight: 1.5, fontWeight: 500 }}>
                   {liveCaption.text}
                   <span style={{
                     display: 'inline-block', width: 2, height: '1em',
@@ -598,36 +596,75 @@ export default function SessionPage() {
           </div>
         </div>
 
-        <style>{`@keyframes blink { 0%,100%{opacity:1} 50%{opacity:0} }`}</style>
+        {/* ── Right: Transcript panel ── */}
+        <div style={{ flex: 1, display: 'flex', flexDirection: 'column', overflow: 'hidden', background: '#FFFBF7' }}>
 
-        <div style={{ flex: 1, width: '100%', maxWidth: 700, overflowY: 'auto', padding: '12px 20px 32px', display: 'flex', flexDirection: 'column', gap: 10 }}>
-          {transcript.length === 0 && (
-            <p style={{ textAlign: 'center', color: '#C4A99A', fontSize: 14, marginTop: 20 }}>
-              Your conversation will appear here…
-            </p>
-          )}
-          {transcript.map((entry, i) => (
-            <div key={i} style={{ display: 'flex', justifyContent: entry.role === 'user' ? 'flex-end' : 'flex-start' }}>
-              <div style={{
-                maxWidth: '78%', padding: '10px 16px', borderRadius: 18,
-                background: entry.role === 'user' ? '#EEEDFE' : '#FFF3EC',
-                color: entry.role === 'user' ? '#26215C' : '#4A1B0C',
-                fontSize: 14, lineHeight: 1.55, fontWeight: 500,
-                borderBottomRightRadius: entry.role === 'user' ? 4 : 18,
-                borderBottomLeftRadius: entry.role === 'ai' ? 4 : 18,
-              }}>
+          {/* Header */}
+          <div style={{
+            padding: '13px 22px', borderBottom: '1px solid #F2E4DB', flexShrink: 0,
+            display: 'flex', alignItems: 'center', gap: 10, background: '#FFFBF7',
+          }}>
+            <span style={{ fontSize: 11, fontWeight: 800, color: '#993C1D', textTransform: 'uppercase', letterSpacing: '0.1em', opacity: 0.55 }}>
+              Conversation
+            </span>
+            <div style={{ flex: 1, height: 1, background: '#F2E4DB' }} />
+            {transcript.length > 0 && (
+              <span style={{ fontSize: 11, color: '#C4A99A', fontWeight: 600 }}>
+                {transcript.length} {transcript.length === 1 ? 'message' : 'messages'}
+              </span>
+            )}
+          </div>
+
+          {/* Messages */}
+          <div style={{ flex: 1, overflowY: 'auto', padding: '16px 20px 36px', display: 'flex', flexDirection: 'column', gap: 14 }}>
+            {transcript.length === 0 && (
+              <p style={{ textAlign: 'center', color: '#C4A99A', fontSize: 14, marginTop: 36 }}>
+                Your conversation will appear here…
+              </p>
+            )}
+            {transcript.map((entry, i) => (
+              <div key={i} style={{ display: 'flex', justifyContent: entry.role === 'user' ? 'flex-end' : 'flex-start', alignItems: 'flex-end', gap: 8 }}>
                 {entry.role === 'ai' && (
-                  <span style={{ fontSize: 11, fontWeight: 700, color: '#D85A30', display: 'block', marginBottom: 4 }}>
-                    TutorTalk
-                  </span>
+                  <div style={{
+                    width: 30, height: 30, borderRadius: '50%', flexShrink: 0,
+                    background: 'linear-gradient(135deg, #D85A30, #EF9F27)',
+                    display: 'flex', alignItems: 'center', justifyContent: 'center',
+                    color: '#fff', fontSize: 10, fontWeight: 800, letterSpacing: '-0.5px',
+                  }}>TT</div>
                 )}
-                {entry.text}
+                <div style={{
+                  maxWidth: '74%', padding: '10px 15px',
+                  borderRadius: entry.role === 'user' ? '18px 18px 4px 18px' : '18px 18px 18px 4px',
+                  background: entry.role === 'user' ? '#EEEDFE' : '#FFF3EC',
+                  color: entry.role === 'user' ? '#26215C' : '#4A1B0C',
+                  fontSize: 14, lineHeight: 1.62, fontWeight: 500,
+                  border: `1px solid ${entry.role === 'user' ? '#D6D3F7' : '#F2E4DB'}`,
+                  boxShadow: entry.role === 'user' ? '0 1px 6px rgba(127,119,221,0.12)' : '0 1px 6px rgba(216,90,48,0.08)',
+                }}>
+                  <span style={{
+                    fontSize: 10, fontWeight: 800, letterSpacing: '0.07em', textTransform: 'uppercase',
+                    color: entry.role === 'ai' ? '#D85A30' : '#7F77DD', display: 'block', marginBottom: 5,
+                  }}>
+                    {entry.role === 'ai' ? 'TutorTalk' : 'You'}
+                  </span>
+                  {entry.text}
+                </div>
+                {entry.role === 'user' && (
+                  <div style={{
+                    width: 30, height: 30, borderRadius: '50%', flexShrink: 0,
+                    background: 'linear-gradient(135deg, #7F77DD, #A8A3F0)',
+                    display: 'flex', alignItems: 'center', justifyContent: 'center',
+                    color: '#fff', fontSize: 10, fontWeight: 800,
+                  }}>Me</div>
+                )}
               </div>
-            </div>
-          ))}
-          <div ref={transcriptEndRef} />
+            ))}
+            <div ref={transcriptEndRef} />
+          </div>
         </div>
       </div>
+
+      <style>{`@keyframes blink { 0%,100%{opacity:1} 50%{opacity:0} }`}</style>
     </div>
   );
 }
