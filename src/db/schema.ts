@@ -17,6 +17,8 @@ export const sessions = pgTable("sessions", {
   durationSecs: integer("duration_secs"),
   startedAt: timestamp("started_at").notNull(),
   endedAt: timestamp("ended_at"),
+  type: varchar("type", { length: 20 }).default('tutor'),
+  score: text("score"),
 });
 
 export const reports = pgTable("reports", {

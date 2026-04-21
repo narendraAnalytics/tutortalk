@@ -8,7 +8,7 @@ export async function POST(req: NextRequest) {
   const { userId } = await auth();
   if (!userId) return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
 
-  const { subject, transcript, durationSecs, startedAt } = await req.json();
+  const { subject, transcript, durationSecs, startedAt, type, score } = await req.json();
 
   // Resolve Neon UUID from Clerk string ID
   const user = await db.select().from(users).where(eq(users.clerkId, userId)).limit(1);
@@ -23,6 +23,8 @@ export async function POST(req: NextRequest) {
       durationSecs,
       startedAt: new Date(startedAt),
       endedAt: new Date(),
+      type: type ?? 'tutor',
+      score: score ?? null,
     })
     .returning({ id: sessions.id });
 

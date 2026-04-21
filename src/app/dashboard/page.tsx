@@ -12,6 +12,8 @@ export type SessionRow = {
   startedAt: string;        // ISO — dates aren't serialisable as props
   exchangeCount: number;
   preview: string;
+  type: 'tutor' | 'exam';
+  score?: { answered: number; total: number } | null;
 };
 
 export default async function DashboardPage() {
@@ -36,6 +38,8 @@ export default async function DashboardPage() {
       durationSecs:sessions.durationSecs,
       startedAt:   sessions.startedAt,
       transcript:  sessions.transcript,
+      type:        sessions.type,
+      score:       sessions.score,
     })
     .from(sessions)
     .where(eq(sessions.userId, dbUser.id))
@@ -54,6 +58,8 @@ export default async function DashboardPage() {
       startedAt:    (r.startedAt ?? new Date()).toISOString(),
       exchangeCount:entries.length,
       preview:      firstAI.length > 90 ? firstAI.slice(0, 90) + '…' : firstAI || `${r.subject} session`,
+      type:         (r.type ?? 'tutor') as 'tutor' | 'exam',
+      score:        r.score ? JSON.parse(r.score) : null,
     };
   });
 

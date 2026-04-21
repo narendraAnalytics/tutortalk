@@ -371,13 +371,13 @@ export default function SessionPage() {
             Set up your session
           </h1>
           <p style={{ color: '#993C1D', fontSize: 15, marginBottom: 36, opacity: 0.8 }}>
-            Choose your exam level, subject, and difficulty to get a personalised tutor.
+            Choose your study level, subject, and difficulty to get a personalised tutor.
           </p>
 
           {/* ── Step 1: Exam Level ── */}
           <div style={{ marginBottom: 32 }}>
             <p style={{ fontSize: 13, fontWeight: 700, color: '#993C1D', textTransform: 'uppercase', letterSpacing: '0.06em', marginBottom: 12 }}>
-              1 · Exam Level
+              1 · Study Level
             </p>
             <div style={{ display: 'flex', gap: 10, flexWrap: 'wrap' }}>
               {LEVELS.map(l => (

@@ -319,6 +319,67 @@ export default function DashboardClient({ firstName, sessions, totalSessions, to
             ))}
           </div>
 
+          {/* ── Mode cards ── */}
+          <div style={{ display: 'grid', gridTemplateColumns: 'repeat(2, 1fr)', gap: 18, marginBottom: 48 }}>
+            {/* Train card */}
+            <Link href="/session" style={{ textDecoration: 'none' }}>
+              <div
+                style={{
+                  borderRadius: 22, padding: '28px 26px',
+                  background: 'linear-gradient(135deg, #FAECE7 0%, #FDE8DE 100%)',
+                  border: '1.5px solid rgba(216,90,48,0.14)',
+                  boxShadow: '0 4px 24px rgba(216,90,48,0.10)',
+                  cursor: 'pointer', position: 'relative', overflow: 'hidden',
+                  transition: 'transform .22s ease, box-shadow .22s ease',
+                  animation: 'fadeUp .6s .25s ease backwards',
+                }}
+                onMouseEnter={e => { (e.currentTarget as HTMLDivElement).style.transform = 'translateY(-4px)'; (e.currentTarget as HTMLDivElement).style.boxShadow = '0 8px 36px rgba(216,90,48,0.18)'; }}
+                onMouseLeave={e => { (e.currentTarget as HTMLDivElement).style.transform = ''; (e.currentTarget as HTMLDivElement).style.boxShadow = '0 4px 24px rgba(216,90,48,0.10)'; }}
+              >
+                <div style={{ fontSize: 34, marginBottom: 10 }}>🎓</div>
+                <div style={{ fontSize: 18, fontWeight: 800, color: '#4A1B0C', fontFamily: 'var(--font-poppins)', marginBottom: 6 }}>Train</div>
+                <div style={{ fontSize: 13.5, color: '#993C1D', opacity: 0.75, marginBottom: 20 }}>Practice with your AI tutor</div>
+                <div style={{
+                  display: 'inline-block',
+                  background: 'linear-gradient(135deg, #D85A30, #EF9F27)',
+                  color: '#FFFBF7', padding: '8px 22px', borderRadius: 99,
+                  fontWeight: 700, fontSize: 13, fontFamily: 'var(--font-poppins)',
+                }}>
+                  Start training →
+                </div>
+              </div>
+            </Link>
+
+            {/* Exam card */}
+            <Link href="/exam" style={{ textDecoration: 'none' }}>
+              <div
+                style={{
+                  borderRadius: 22, padding: '28px 26px',
+                  background: 'linear-gradient(135deg, #EDF2FF 0%, #E0E7FF 100%)',
+                  border: '1.5px solid rgba(59,91,219,0.14)',
+                  boxShadow: '0 4px 24px rgba(59,91,219,0.10)',
+                  cursor: 'pointer', position: 'relative', overflow: 'hidden',
+                  transition: 'transform .22s ease, box-shadow .22s ease',
+                  animation: 'fadeUp .6s .35s ease backwards',
+                }}
+                onMouseEnter={e => { (e.currentTarget as HTMLDivElement).style.transform = 'translateY(-4px)'; (e.currentTarget as HTMLDivElement).style.boxShadow = '0 8px 36px rgba(59,91,219,0.18)'; }}
+                onMouseLeave={e => { (e.currentTarget as HTMLDivElement).style.transform = ''; (e.currentTarget as HTMLDivElement).style.boxShadow = '0 4px 24px rgba(59,91,219,0.10)'; }}
+              >
+                <div style={{ fontSize: 34, marginBottom: 10 }}>📝</div>
+                <div style={{ fontSize: 18, fontWeight: 800, color: '#1E3A8A', fontFamily: 'var(--font-poppins)', marginBottom: 6 }}>Exam</div>
+                <div style={{ fontSize: 13.5, color: '#3B5BDB', opacity: 0.8, marginBottom: 20 }}>Test yourself with MCQ exams</div>
+                <div style={{
+                  display: 'inline-block',
+                  background: 'linear-gradient(135deg, #3B5BDB, #4C6EF5)',
+                  color: '#FFFBF7', padding: '8px 22px', borderRadius: 99,
+                  fontWeight: 700, fontSize: 13, fontFamily: 'var(--font-poppins)',
+                }}>
+                  Take exam →
+                </div>
+              </div>
+            </Link>
+          </div>
+
           {/* ── Sessions list ── */}
           <div>
             <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 6 }}>
@@ -381,6 +442,30 @@ export default function DashboardClient({ firstName, sessions, totalSessions, to
                       }}>
                         {s.subject.split(' — ')[0]}
                       </div>
+
+                      {/* Exam type badge */}
+                      {s.type === 'exam' && (
+                        <div style={{
+                          background: '#EDF2FF', color: '#3B5BDB',
+                          padding: '4px 10px', borderRadius: 99,
+                          fontSize: 11, fontWeight: 700, flexShrink: 0,
+                          border: '1px solid rgba(59,91,219,0.2)',
+                          letterSpacing: '0.04em',
+                        }}>
+                          EXAM
+                        </div>
+                      )}
+
+                      {/* Score badge */}
+                      {s.type === 'exam' && s.score && (
+                        <div style={{
+                          background: '#E0E7FF', color: '#3B5BDB',
+                          padding: '4px 10px', borderRadius: 99,
+                          fontSize: 11, fontWeight: 700, flexShrink: 0,
+                        }}>
+                          {s.score.answered}/{s.score.total} answered
+                        </div>
+                      )}
 
                       {/* Session info */}
                       <div style={{ flex: 1, minWidth: 0 }}>
