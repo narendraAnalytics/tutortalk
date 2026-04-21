@@ -1,7 +1,5 @@
 'use client';
 
-import { useEffect } from 'react';
-import { useRouter } from 'next/navigation';
 import Link from 'next/link';
 import type { SessionRow } from './page';
 
@@ -35,12 +33,6 @@ const DownloadIcon = () => (
   </svg>
 );
 
-const SpinnerIcon = () => (
-  <svg width="13" height="13" viewBox="0 0 24 24" fill="none" style={{ animation: 'spin 1s linear infinite' }}>
-    <circle cx="12" cy="12" r="9" stroke="currentColor" strokeWidth="2" strokeDasharray="28" strokeDashoffset="10"/>
-  </svg>
-);
-
 type Props = {
   firstName: string;
   sessions: SessionRow[];
@@ -50,17 +42,8 @@ type Props = {
 };
 
 export default function DashboardClient({ firstName, sessions, totalSessions, totalMinutes, topicsCovered }: Props) {
-  const router = useRouter();
   const hour = new Date().getHours();
   const greeting = hour < 12 ? 'Good morning' : hour < 17 ? 'Good afternoon' : 'Good evening';
-
-  // Poll every 4 s while any session is still generating its PDF
-  const hasPending = sessions.some(s => s.pdfUrl === null);
-  useEffect(() => {
-    if (!hasPending) return;
-    const id = setInterval(() => router.refresh(), 4000);
-    return () => clearInterval(id);
-  }, [hasPending, router]);
 
   const METRICS = [
     {
@@ -164,31 +147,20 @@ export default function DashboardClient({ firstName, sessions, totalSessions, to
                       </div>
                     </div>
 
-                    {/* PDF download / generating state */}
-                    {s.pdfUrl ? (
-                      <a
-                        href={`/api/session/pdf?sessionId=${s.id}`}
-                        style={{
-                          background: '#FAECE7', color: '#D85A30',
-                          padding: '8px 20px', borderRadius: 99, border: 'none', cursor: 'pointer',
-                          fontWeight: 700, fontSize: 12.5, fontFamily: 'var(--font-poppins)', flexShrink: 0,
-                          textDecoration: 'none', display: 'flex', alignItems: 'center', gap: 6, transition: 'background .2s',
-                        }}
-                        onMouseEnter={e => { (e.currentTarget as HTMLAnchorElement).style.background = '#F5D9CF'; }}
-                        onMouseLeave={e => { (e.currentTarget as HTMLAnchorElement).style.background = '#FAECE7'; }}
-                      >
-                        <DownloadIcon /> Download PDF
-                      </a>
-                    ) : (
-                      <span style={{
-                        background: '#F5F4FF', color: '#7F77DD',
+                    {/* Transcript download */}
+                    <a
+                      href={`/api/session/transcript?sessionId=${s.id}`}
+                      style={{
+                        background: '#FAECE7', color: '#D85A30',
                         padding: '8px 20px', borderRadius: 99,
-                        fontWeight: 600, fontSize: 12.5, fontFamily: 'var(--font-poppins)', flexShrink: 0,
-                        display: 'flex', alignItems: 'center', gap: 6,
-                      }}>
-                        <SpinnerIcon /> Generating…
-                      </span>
-                    )}
+                        fontWeight: 700, fontSize: 12.5, fontFamily: 'var(--font-poppins)', flexShrink: 0,
+                        textDecoration: 'none', display: 'flex', alignItems: 'center', gap: 6, transition: 'background .2s',
+                      }}
+                      onMouseEnter={e => { (e.currentTarget as HTMLAnchorElement).style.background = '#F5D9CF'; }}
+                      onMouseLeave={e => { (e.currentTarget as HTMLAnchorElement).style.background = '#FAECE7'; }}
+                    >
+                      <DownloadIcon /> Transcript
+                    </a>
                   </div>
                 );
               })}

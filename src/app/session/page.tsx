@@ -296,6 +296,12 @@ export default function SessionPage() {
 
       sessionRef.current = session;
 
+      const levelLabel = LEVELS.find(l => l.id === level)?.label ?? level;
+      const topicLine = topic.trim() ? ` on the topic "${topic.trim()}"` : '';
+      session.sendRealtimeInput({
+        text: `Greet the student warmly. Let them know you're their ${levelLabel} ${subject} tutor${topicLine}. Tell them the difficulty is set to ${difficulty}. Ask them what they'd like to learn or which specific concept or problem they want help with today.`,
+      });
+
     } catch (err: unknown) {
       setError(err instanceof Error ? err.message : 'Failed to start session');
       setPhase('picking');
@@ -333,15 +339,7 @@ export default function SessionPage() {
           startedAt: startedAtRef.current.toISOString(),
         }),
       });
-      if (saveRes.ok) {
-        const { sessionId } = await saveRes.json();
-        fetch('/api/session/report', {
-          method: 'POST',
-          headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify({ sessionId }),
-          keepalive: true,
-        }).catch(() => {});
-      }
+      if (!saveRes.ok) console.error('Session save failed');
     } catch { /* navigate anyway */ }
     router.push('/dashboard');
   }
@@ -594,7 +592,7 @@ export default function SessionPage() {
         <style>{`@keyframes blink { 0%,100%{opacity:1} 50%{opacity:0} }`}</style>
 
         {/* Transcript */}
-        <div style={{ flex: 1, width: '100%', maxWidth: 680, overflow: 'hidden', display: 'flex', flexDirection: 'column', marginTop: 8 }}>
+        <div style={{ flex: 1, minHeight: 0, width: '100%', maxWidth: 680, overflow: 'hidden', display: 'flex', flexDirection: 'column', marginTop: 8 }}>
 
           {/* Divider shown once messages arrive */}
           {transcript.length > 0 && (
@@ -607,7 +605,7 @@ export default function SessionPage() {
             </div>
           )}
 
-          <div style={{ flex: 1, overflowY: 'auto', padding: '4px 20px 32px', display: 'flex', flexDirection: 'column', gap: 10 }}>
+          <div style={{ flex: 1, minHeight: 0, overflowY: 'auto', padding: '4px 20px 32px', display: 'flex', flexDirection: 'column', gap: 10 }}>
             {transcript.length === 0 && (
               <p style={{ textAlign: 'center', color: '#C4A99A', fontSize: 14, marginTop: 16 }}>
                 Your conversation will appear here…

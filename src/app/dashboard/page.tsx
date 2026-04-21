@@ -1,7 +1,7 @@
 import { currentUser } from '@clerk/nextjs/server';
 import { redirect } from 'next/navigation';
 import { db } from '@/db';
-import { users, sessions, reports } from '@/db/schema';
+import { users, sessions } from '@/db/schema';
 import { eq, desc } from 'drizzle-orm';
 import DashboardClient from './DashboardClient';
 
@@ -10,9 +10,8 @@ export type SessionRow = {
   subject: string;
   durationSecs: number;
   startedAt: string;        // ISO — dates aren't serialisable as props
-  exchangeCount: number;    // number of transcript entries
-  preview: string;          // first AI line for display
-  pdfUrl: string | null;
+  exchangeCount: number;
+  preview: string;
 };
 
 export default async function DashboardPage() {
@@ -37,10 +36,8 @@ export default async function DashboardPage() {
       durationSecs:sessions.durationSecs,
       startedAt:   sessions.startedAt,
       transcript:  sessions.transcript,
-      pdfUrl:      reports.pdfUrl,
     })
     .from(sessions)
-    .leftJoin(reports, eq(reports.sessionId, sessions.id))
     .where(eq(sessions.userId, dbUser.id))
     .orderBy(desc(sessions.startedAt));
 
@@ -57,7 +54,6 @@ export default async function DashboardPage() {
       startedAt:    (r.startedAt ?? new Date()).toISOString(),
       exchangeCount:entries.length,
       preview:      firstAI.length > 90 ? firstAI.slice(0, 90) + '…' : firstAI || `${r.subject} session`,
-      pdfUrl:       r.pdfUrl ?? null,
     };
   });
 
