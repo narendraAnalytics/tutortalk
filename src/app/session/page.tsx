@@ -567,35 +567,6 @@ export default function SessionPage() {
             {STATUS_LABEL[orbState]}
           </p>
 
-          {/* Live caption */}
-          <div style={{
-            marginTop: 10, width: '100%', maxWidth: 560, padding: '0 20px',
-            transition: 'opacity 0.3s ease', opacity: liveCaption ? 1 : 0, pointerEvents: 'none',
-          }}>
-            {liveCaption && (
-              <div style={{
-                background: liveCaption.role === 'ai' ? '#FFF3EC' : '#EEEDFE',
-                border: `1.5px solid ${liveCaption.role === 'ai' ? '#F2E4DB' : '#D6D3F7'}`,
-                borderRadius: 14, padding: '9px 14px',
-              }}>
-                <span style={{
-                  fontSize: 9, fontWeight: 800, letterSpacing: '0.08em', textTransform: 'uppercase',
-                  color: liveCaption.role === 'ai' ? '#D85A30' : '#7F77DD', display: 'block', marginBottom: 3,
-                }}>
-                  {liveCaption.role === 'ai' ? 'TutorTalk' : 'You'}
-                </span>
-                <span style={{ fontSize: 13, color: liveCaption.role === 'ai' ? '#4A1B0C' : '#26215C', lineHeight: 1.5, fontWeight: 500 }}>
-                  {liveCaption.text}
-                  <span style={{
-                    display: 'inline-block', width: 2, height: '1em',
-                    background: liveCaption.role === 'ai' ? '#D85A30' : '#7F77DD',
-                    marginLeft: 2, verticalAlign: 'text-bottom',
-                    animation: 'blink 1s step-end infinite',
-                  }} />
-                </span>
-              </div>
-            )}
-          </div>
         </div>
 
         <style>{`
@@ -624,7 +595,7 @@ export default function SessionPage() {
           }}>
 
             {/* Divider shown once messages arrive */}
-            {transcript.length > 0 && (
+            {(transcript.length > 0 || liveCaption) && (
               <div style={{ display: 'flex', alignItems: 'center', gap: 8, padding: '10px 16px 6px', flexShrink: 0 }}>
                 <div style={{ flex: 1, height: 1, background: '#F2E4DB' }} />
                 <span style={{ fontSize: 10, fontWeight: 700, color: '#C4A99A', letterSpacing: '0.1em', textTransform: 'uppercase' }}>
@@ -659,6 +630,31 @@ export default function SessionPage() {
                   </div>
                 </div>
               ))}
+              {/* Live caption — streaming bubble inside the box */}
+              {liveCaption && (
+                <div style={{ display: 'flex', justifyContent: liveCaption.role === 'user' ? 'flex-end' : 'flex-start' }}>
+                  <div style={{
+                    maxWidth: '80%', padding: '10px 15px', borderRadius: 18,
+                    background: liveCaption.role === 'ai' ? '#FFF3EC' : '#EEEDFE',
+                    color: liveCaption.role === 'ai' ? '#4A1B0C' : '#26215C',
+                    fontSize: 14, lineHeight: 1.6, fontWeight: 500,
+                    borderBottomRightRadius: liveCaption.role === 'user' ? 4 : 18,
+                    borderBottomLeftRadius: liveCaption.role === 'ai' ? 4 : 18,
+                    opacity: 0.85,
+                  }}>
+                    <span style={{ fontSize: 10, fontWeight: 700, display: 'block', marginBottom: 3, textTransform: 'uppercase', letterSpacing: '0.06em', color: liveCaption.role === 'ai' ? '#D85A30' : '#7F77DD' }}>
+                      {liveCaption.role === 'ai' ? 'TutorTalk' : 'You'}
+                    </span>
+                    {liveCaption.text}
+                    <span style={{
+                      display: 'inline-block', width: 2, height: '1em',
+                      background: liveCaption.role === 'ai' ? '#D85A30' : '#7F77DD',
+                      marginLeft: 2, verticalAlign: 'text-bottom',
+                      animation: 'blink 1s step-end infinite',
+                    }} />
+                  </div>
+                </div>
+              )}
               <div ref={transcriptEndRef} />
             </div>
           </div>
