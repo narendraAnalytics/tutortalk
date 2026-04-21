@@ -5,7 +5,7 @@ This file provides guidance to Claude Code (claude.ai/code) when working with co
 ---
 
 ### Skill
-For ALL frontend/UI work — landing page, dashboard, session page, components — use the skill at:
+For ALL frontend/UI work — landing page, dashboard, session page, exam page, components — use the skill at:
 `C:\Users\ES\.claude\skills\nextstack.skill`
 
 ---
@@ -28,7 +28,12 @@ Environment file is **`.env`** (not `.env.local`). All keys including `GEMINI_AP
 
 ## What TutorTalk Does
 
-AI-powered Socratic voice tutor. Students speak; the AI guides them to answers through questions — never giving answers directly. Sessions end with a downloadable transcript (`.txt`).
+AI-powered voice learning platform with two modes:
+
+1. **Train** (`/session`) — Socratic voice tutor. AI guides students to answers through questions, never giving answers directly. Sessions end with a downloadable PDF transcript.
+2. **Exam** (`/exam`) — Voice MCQ exam conductor. AI asks numbered questions with 4 options, student answers by voice, AI gives immediate correct/incorrect feedback with a brief explanation (3–5 words). Results screen shows score, accuracy %, and time taken.
+
+Both modes use the same Gemini Live WebSocket stack and VoiceOrb component. The dashboard at `/dashboard` shows both past train sessions and exam sessions, with a Train/Exam mode card selector.
 
 ---
 
@@ -38,8 +43,8 @@ AI-powered Socratic voice tutor. Students speak; the AI guides them to answers t
 ```
 Browser → POST /api/token            → Clerk auth check, returns GEMINI_API_KEY
 Browser → WebSocket (direct)         → wss://generativelanguage.googleapis.com (Gemini Live)
-Browser → POST /api/session/save     → Neon (transcript + metadata)
-Browser → GET  /api/session/transcript?sessionId=xxx → returns .txt download
+Browser → POST /api/session/save     → Neon (transcript + metadata + type + score)
+Browser → GET  /api/session/transcript?sessionId=xxx → returns PDF download
 ```
 
 The WebSocket connects **browser-direct** to Google — Vercel never proxies audio. This is intentional: Vercel's 10s timeout would kill long sessions.
@@ -47,18 +52,34 @@ The WebSocket connects **browser-direct** to Google — Vercel never proxies aud
 ### Key files
 | File | Role |
 |------|------|
-| `src/app/session/page.tsx` | Full voice session UI — WebSocket, AudioWorklet, transcript, orb |
-| `src/app/dashboard/page.tsx` | Server Component — fetches sessions from Neon |
-| `src/app/dashboard/DashboardClient.tsx` | Client UI for dashboard |
+| `src/app/session/page.tsx` | Train mode — voice session UI, WebSocket, AudioWorklet, transcript, orb |
+| `src/app/exam/page.tsx` | Exam mode — MCQ voice exam, question counter, score tracking, results screen |
+| `src/app/dashboard/page.tsx` | Server Component — fetches sessions from Neon, shapes `SessionRow[]` |
+| `src/app/dashboard/DashboardClient.tsx` | Client UI — Train/Exam mode cards, session list with type/score badges |
 | `src/app/api/token/route.ts` | Returns `GEMINI_API_KEY` to authenticated users |
-| `src/app/api/session/save/route.ts` | Saves transcript + metadata to Neon |
-| `src/app/api/session/transcript/route.ts` | Returns session transcript as `.txt` download |
+| `src/app/api/session/save/route.ts` | Saves transcript + metadata + type + score to Neon |
+| `src/app/api/session/transcript/route.ts` | Returns session transcript as PDF download |
 | `src/app/api/auth/sync/route.ts` | Upserts Clerk user into Neon `users` table |
-| `src/db/schema.ts` | Drizzle schema: `users`, `sessions`, `reports` (`reports` table unused but kept) |
+| `src/db/schema.ts` | Drizzle schema: `users`, `sessions` (with `type`/`score` columns), `reports` (unused) |
 | `src/lib/audioQueue.ts` | Gapless PCM16 playback via scheduled AudioBufferSourceNodes |
 | `public/worklets/capture-processor.js` | AudioWorklet: Float32 → Int16 mic capture |
 | `src/middleware.ts` | Clerk route protection — MUST be at `src/`, not project root |
 | `src/components/VoiceOrb.tsx` | Animated orb: `'lg' \| 'md' \| 'sm'` sizes |
+
+### Database schema — `sessions` table
+| Column | Type | Notes |
+|--------|------|-------|
+| `id` | uuid | primary key |
+| `user_id` | uuid | FK → users.id |
+| `subject` | varchar(255) | e.g. `"Physics — Class 10"` |
+| `transcript` | text | JSON array of `{role, text}` entries |
+| `duration_secs` | integer | |
+| `started_at` | timestamp | |
+| `ended_at` | timestamp | |
+| `type` | varchar(20) | `'tutor'` (default) or `'exam'` |
+| `score` | text | JSON: `{correct, answered, total}` — exam only, null for tutor |
+
+When reading `type` from DB, always guard: `(r.type ?? 'tutor') as 'tutor' | 'exam'`.
 
 ---
 
@@ -70,18 +91,13 @@ The WebSocket connects **browser-direct** to Google — Vercel never proxies aud
 - Middleware MUST be at `src/middleware.ts`. Placing it at the project root silently breaks all Clerk auth.
 - Clerk IDs are strings like `user_xxxxxxx` — `clerk_id` is `varchar(255)`, NEVER uuid.
 
-
-###
-  Crystal clear. The middleware is at ./middleware.ts but with a src/ project it must be at ./src/middleware.ts.
-
-  
 ### Gemini Live API — working config (confirmed)
 ```typescript
 const session = await ai.live.connect({
   model: 'gemini-3.1-flash-live-preview',
   config: {
     responseModalities: [Modality.AUDIO],   // AUDIO only works fine
-    speechConfig: { voiceConfig: { prebuiltVoiceConfig: { voiceName: 'Zephyr' } } },
+    speechConfig: { voiceConfig: { prebuiltVoiceConfig: { voiceName: 'Zephyr' } } }, // 'Puck' for exam
     tools: [{ googleSearch: {} }],           // camelCase — snake_case causes 1007
     systemInstruction: { parts: [{ text: systemText }] },
     inputAudioTranscription: {},             // enables user speech → sc.inputTranscription.text
@@ -90,6 +106,8 @@ const session = await ai.live.connect({
   callbacks: { onopen, onmessage, onclose, onerror },
 });
 ```
+
+**Voice assignment:** Train mode uses `'Zephyr'`, Exam mode uses `'Puck'` — keeps the two AI personalities audibly distinct.
 
 **Critical config notes:**
 - `responseModalities: [Modality.AUDIO]` — TEXT is NOT required for this model version (tested working)
@@ -185,24 +203,55 @@ Use `@google/genai` (new unified SDK). `@google/generative-ai` is deprecated.
 
 ---
 
-## Voice Code — Our Implementation vs Reference (jaydanurwin/gemini-live-agent-demo)
+## Exam Mode — Additional Patterns
 
-| Area | Reference demo | TutorTalk | Verdict |
-|------|---------------|-----------|---------|
-| `responseModalities` | `[AUDIO]` | `[AUDIO]` | ✓ same |
-| `outputAudioTranscription` | `{}` in config | `{}` in config | ✓ same |
-| `inputAudioTranscription` | absent | `{}` in config | ✓ **ours better** (user speech transcript) |
-| `speechConfig / Zephyr` | ✓ | ✓ | ✓ same |
-| `tools: googleSearch` | ✓ | ✓ | ✓ same |
-| Mic encoding | `btoa(fromCharCode loop)` | `btoa(String.fromCharCode(...new Uint8Array(buf)))` | ✓ same |
-| Audio output decode | manual Int16→Float32 | `b64ToAudioBuffer()` — same logic | ✓ same |
-| Gapless audio playback | scheduled `AudioBufferSourceNode`s | `AudioQueue` lib — same pattern | ✓ equal/better |
-| Transcript paths | `sc.outputTranscription.text` | `sc.outputTranscription.text` | ✓ same (fixed) |
-| Text → model | `sendClientContent()` | `sendRealtimeInput({ text })` | ✓ ours correct (avoids mixing) |
-| Auto-greet | manual button click | `sendRealtimeInput({ text })` after connect | ✓ ours better (automatic) |
-| Message order | n/a (server-side) | transcription before turnComplete | ✓ ours fixed |
+### Exam page state machine
+`picking → connecting → active → saving → results`
 
-**Conclusion**: TutorTalk's voice implementation is equal or better than the reference on all dimensions.
+The exam page uses several refs that shadow state to avoid stale closures inside `onmessage`:
+- `answeredCountRef`, `correctCountRef`, `durationRef` — shadow their state counterparts
+- `examDoneRef` — guards against double-completion (natural end + user "End Exam")
+- `subjectRef`, `levelRef`, `questionCountRef` — captured at exam start so `handleExamComplete` can read them after cleanup
+
+### Exam question counter
+Parse `"Question X of N"` from each committed AI turn to update `currentQuestion` state:
+```typescript
+function parseQuestionNumber(text: string): number | null {
+  const m = text.match(/Question\s+(\d+)\s+of\s+\d+/i);
+  return m ? parseInt(m[1], 10) : null;
+}
+```
+
+### Exam scoring
+Parse AI feedback from the same turn that confirms an answer:
+```typescript
+function parseResult(text: string): 'correct' | 'incorrect' | null {
+  if (/\bCorrect!\b/i.test(text)) return 'correct';
+  if (/\bIncorrect\b/i.test(text)) return 'incorrect';
+  return null;
+}
+```
+The system prompt instructs the AI to say `"Correct!"` or `"Incorrect."` immediately after `"You selected Option X."`. Explanations are capped at 3–5 words.
+
+### Exam completion detection
+```typescript
+if (aiText.includes('Exam complete! You answered all')) {
+  setTimeout(() => handleExamComplete(), 400);
+}
+```
+The 400ms delay lets the last transcript entry commit before cleanup runs.
+
+### Exam transcript formatting
+AI turns are reformatted before rendering to put each option on its own line:
+```typescript
+function formatAiText(text: string): string {
+  return text
+    .replace(/\s+(Question\s+\d+\s+of\s+\d+[.:)]?\s*)/gi, '\n\n$1')
+    .replace(/Option\s+([1-4])\s*[:.]?\s/g, '\nOption $1: ')
+    .trim();
+}
+```
+Render with `whiteSpace: 'pre-line'` on the bubble div. Correct/Incorrect turns get green/red background.
 
 ---
 
@@ -234,8 +283,9 @@ Both `flex: 1` containers need `minHeight: 0` — without it, flex children don'
 
 ## Design System
 
-All UI uses inline styles (no Tailwind classes for layout). Colors — no exceptions:
+All UI uses inline styles (no Tailwind classes for layout). Two color themes:
 
+### Train mode (coral/warm)
 | Purpose | Hex |
 |---------|-----|
 | Page background | `#FFFBF7` |
@@ -246,6 +296,18 @@ All UI uses inline styles (no Tailwind classes for layout). Colors — no except
 | Button text | `#FFFBF7` |
 | Student bubble | `#7F77DD` / `#EEEDFE` |
 | Tutor bubble | `#F0997B` / `#FFF3EC` |
+
+### Exam mode (indigo/cool)
+| Purpose | Hex |
+|---------|-----|
+| Page background | `#EDF2FF` |
+| Primary | `#3B5BDB` / `#4C6EF5` |
+| Headings | `#1E3A8A` |
+| Body text | `#3B5BDB` |
+| CTA gradient | `#3B5BDB → #4C6EF5` |
+| AI bubble | `#EEF2FF` / `#1E3A8A` |
+| Correct feedback | `#DCFCE7` / `#15803D` |
+| Incorrect feedback | `#FEE2E2` / `#DC2626` |
 
 Logo Cloudinary URL: `https://res.cloudinary.com/dkqbzwicr/image/upload/q_auto/f_auto/v1776668144/logotutortalk_ecmdbm.png`
 
@@ -268,3 +330,7 @@ VoiceOrb states: `idle` (breathe) → `listening` (teal rings) → `speaking` (c
 | AudioContext blocked silently | Created in `useEffect` | Move to `onClick` handler |
 | Garbled audio | Float32 sent instead of Int16 | Verify worklet outputs `Int16Array` |
 | Transcript truncated / won't scroll | `flex: 1` container missing `minHeight: 0` | Add `minHeight: 0` to both the outer and inner transcript flex containers |
+| Exam scores all zero | `correctCountRef.current` read before `onmessage` updates it | Always read refs inside the `onmessage` callback, not in stale closures |
+| Q counter stuck at 1 | Parsing `answeredCount` instead of question number from AI text | Use `parseQuestionNumber()` on committed AI turn text |
+| Exam completes twice | `handleExamComplete` called by both AI phrase and "End Exam" button | Guard with `examDoneRef.current` check at top of both handlers |
+| `type` column null for old sessions | Column added with `DEFAULT 'tutor'` but existing rows stored NULL | Guard: `(r.type ?? 'tutor') as 'tutor' \| 'exam'` in dashboard map |

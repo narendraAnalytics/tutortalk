@@ -1,450 +1,253 @@
-Ok code is working nice for training for students now we move to the exam that must be realstic not just a sample exam . we nust create
-  realtime exam . i want seperate file for exam and other voice ai exam tutor other color mic design same work
-  functionality,transcrpt box same as the ai tutaor talk . seperate syetem prompt for the exam tutor and welcome message for the exam
-  tutor . examine the file @error.txt . Also change the name 1 . Exam level to may be Train level or any nice name
-  .c:\Users\ES\Desktop\Capture.PNG.so in dashboard now we have 2 1. train level or name by yourself and 2 . Exam . Also search web or mcp  
-  server playwright to make the exam nice for the 10th ---- > jee/neet and upsc . Because google brough neet exam teaching in india .       
-  Remain all code same as before. 
------------------------------------------------ ----------------------------------- 
-Good decision. Starting with **Class 10 + Intermediate Exam Mode** is the right scope—manageable, high impact, and easier to validate.
+You’re thinking in the right direction—but there’s a key shift you need to make:
 
-Below is a **clear, production-ready blueprint** focused *only* on this phase.
+> For **JEE / NEET / UPSC**, you don’t just need “more questions”
+> You need **exam-quality, pattern-aware, pressure-tested questions**
 
 ---
 
-# 🎯 1. Scope (What You Are Building Now)
+# 🎯 1. What “Real Exam Questions” Actually Means
 
-## ✅ Exam AI (Phase 1)
+For each exam, “real” has a **very specific definition**:
 
-| Component     | Included                           |
-| ------------- | ---------------------------------- |
-| Question type | MCQ (only)                         |
-| Input mode    | Voice + Option selection           |
-| Classes       | 10th + Intermediate                |
-| Subjects      | Maths, Physics, Chemistry, Biology |
-| Evaluation    | Auto (correct/incorrect)           |
-| Feedback      | Immediate (test mode)          |
+| Exam | What “Real” Means                                |
+| ---- | ------------------------------------------------ |
+| JEE  | Multi-step numerical MCQs, tricky concepts       |
+| NEET | NCERT-based, concept + fact precision            |
+| UPSC | Current affairs + conceptual + elimination logic |
 
-👉 Ignore JEE/NEET/UPSC for now.
+👉 So you must **change your generator logic**, not just increase difficulty.
 
 ---
 
-# 📚 2. Subjects You Should Support
+# 🧠 2. Upgrade Your Question Generator (CRITICAL)
 
-## 🎓 Class 10
+Your current generator:
 
-| Subject     | Coverage                      |
-| ----------- | ----------------------------- |
-| Mathematics | Full syllabus                 |
-| Science     | Physics + Chemistry + Biology |
+> ❌ “Generate MCQs”
 
----
+You need:
 
-## 🧑‍🎓 Intermediate
-
-### MPC
-
-* Mathematics
-* Physics
-* Chemistry
-
-### BiPC
-
-* Biology
-* Chemistry
-* Physics
+> ✅ “Generate exam-pattern questions”
 
 ---
 
-# 🧠 3. Exam Flow (Very Important)
+# 🚀 3. Advanced Question Generator Prompt (JEE / NEET / UPSC)
 
-## 🎤 Voice-Based MCQ Flow
-
-### Step-by-step:
-
-1. AI asks question (voice + text)
-2. AI reads 4 options
-3. User answers via voice:
-
-   * “Option 2” / “B”
-4. System:
-
-   * Converts → transcript
-   * Maps → option index
-5. AI confirms:
-
-   > “You selected Option 2”
-6. Evaluate:
-
-   * Correct / Incorrect
-7. AI gives feedback
-8. Move to next question
+Use this as a **separate high-level generator**
 
 ---
 
-# 🧩 4. Question Format (Standardize This)
+You are an expert exam paper setter for competitive exams like JEE, NEET, and UPSC.
 
-Every question should follow this structure:
-
-```json
-{
-  "question": "What is the SI unit of force?",
-  "options": [
-    "Newton",
-    "Joule",
-    "Pascal",
-    "Watt"
-  ],
-  "correct_answer": 1,
-  "explanation": "Force is measured in Newton (N)."
-}
-```
-
-👉 Keep this consistent across your system.
-
----
-
-# 🎤 5. Voice Answer Mapping (Must Implement)
-
-## Normalize answers like this:
-
-| Input      | Output |
-| ---------- | ------ |
-| "Option 1" | 1      |
-| "One"      | 1      |
-| "A"        | 1      |
-| "First"    | 1      |
-| "Option 2" | 2      |
-| "B"        | 2      |
-| "Second"   | 2      |
-
-👉 This is **critical for reliability**.
-
----
-
-# ⚙️ 6. Modes 
-
-
-## 🔵 Test Mode
-
-| Feature     | Behavior         |
-| ----------- | ---------------- |
-| Feedback    | End of exam      |
-| Explanation | After submission |
-| Timer       | add         |
-
----
-
-# 🧠 7. System Prompt for Exam AI (Unified)
-
-Use this for your **Exam Mode model**
-
-You are an AI Exam Conductor for Class 10 and Intermediate students.
-
-Your role is to conduct structured multiple-choice exams in a clear, controlled, and student-friendly manner.
+Your task is to generate REAL exam-level multiple-choice questions that closely match actual exam patterns, difficulty, and thinking level.
 
 ---
 
 ### Context
 
-* Class Level: {level} (Class 10 / Intermediate)
-* Subject: {subject}
-* Mode: {mode} (Test)
-
----
-
-### Instructions
-
-1. Ask one question at a time.
-
-2. Always present:
-
-* The question clearly
-* Exactly 4 options, labeled as:
-  Option 1, Option 2, Option 3, Option 4
-
-3. Read the question and options in a voice-friendly format.
-
-4. Ask the student:
-   "Please say your answer (Option 1, 2, 3, or 4)."
-
----
-
-### Answer Handling
-
-* Accept answers in different forms:
-  (e.g., "Option 2", "Two", "B", "Second")
-
-* Confirm the answer before evaluating:
-  "You selected Option X"
-
----
-
-### Evaluation Rules
-
-
-Mode = Test:
-
-* Do NOT reveal correctness immediately
-* Store the answer
-* Move to next question
-
----
-
-### Behavior Rules
-
-* Be clear and concise
-* Do not overwhelm the student
-* Maintain a calm and encouraging tone
-* Do not skip steps
-* Always wait for user response before proceeding
-
----
-
-### Goal
-
-Simulate a real exam environment while helping the student practice effectively.
-
----
-
-# 📊 8. Basic Scoring Logic
-
-Keep it simple initially:
-
-| Condition | Score |
-| --------- | ----- |
-| Correct   | +1    |
-| Incorrect | 0     |
-
-👉 Add negative marking later (for JEE phase)
-
----
-
-# 📈 9. Minimal Analytics (Start Simple)
-
-Track:
-
-* Total questions
-* Correct answers
-* Accuracy %
-
-Example:
-
-> “You scored 7/10 (70% accuracy)”
-
----
-
-# ⚠️ 10. Common Mistakes to Avoid
-
-❌ Asking multiple questions at once
-❌ Not confirming user answer
-❌ Poor voice parsing
-❌ Overcomplicated scoring
-❌ Mixing exam + teaching modes
-
----
-
-# 🚀 11. What You Will Achieve
-
-After this phase, you will have:
-
-* ✅ Voice-based exam system
-* ✅ Structured MCQ engine
-* ✅ Real-time evaluation
-* ✅ Clean UX
-
-👉 This alone is a **very strong portfolio feature**
-
----
-
-# 🧭 Next Step (After You Finish This)
-
-Then you can move to:
-
-* JEE/NEET exam patterns
-* Negative marking
-* Advanced analytics
-
----
-
-------------------------------------------- ------------------------------------------------------------ --------------
-
-
-Short answer: **No — don’t mix them.**
-Putting question generation inside your **exam system prompt** will reduce control and consistency.
-
----
-
-# ⚠️ Why combining them is a bad idea
-
-If you merge:
-
-* 🎓 *Exam Conductor Prompt*
-* 🧠 *Question Generator Prompt*
-
-You create conflicts like:
-
-* Model tries to **generate + conduct + evaluate** at the same time
-* Less consistent difficulty
-* Harder to debug
-* Unpredictable question quality
-
-👉 In practice, this leads to:
-
-> ❌ inconsistent exams
-> ❌ repeated questions
-> ❌ wrong difficulty levels
-
----
-
-# ✅ Correct Architecture (Best Practice)
-
-You should **separate concerns**:
-
-## 🧠 1. Question Generator (Offline / Before Exam)
-
-* Generates questions
-* Ensures:
-
-  * syllabus alignment
-  * difficulty control
-  * clean structure
-
----
-
-## 🎤 2. Exam Conductor (During Exam)
-
-* Only:
-
-  * asks questions
-  * captures answers
-  * evaluates
-
-👉 This separation is **very important**
-
----
-
-# 🧩 Recommended Flow
-
-### Step 1: Generate Questions
-
-* Call LLM with **Question Generator Prompt**
-* Store questions (array / DB)
-
----
-
-### Step 2: Start Exam
-
-* Pass stored questions to **Exam Conductor**
-* No generation during exam
-
----
-
-### Step 3: Conduct Exam
-
-* Ask → Listen → Evaluate → Next
-
----
-
-# 🧠 Question Generator Prompt (Use Separately)
-
-Here’s a **clean, controlled prompt**:
-
-You are an expert question setter for Class 10 and Intermediate students.
-
-Generate high-quality multiple-choice questions based on the given context.
-
----
-
-### Context
-
-* Class Level: {level} (Class 10 / Intermediate)
+* Exam: {exam} (JEE / NEET / UPSC)
 * Subject: {subject}
 * Topic: {topic}
-* Difficulty: {difficulty} (Easy / Medium / Hard)
+* Difficulty: Hard
 * Number of Questions: {n}
 
 ---
 
 ### Instructions
 
-1. Generate exactly {n} multiple-choice questions.
+1. Questions must feel like REAL exam questions, not basic practice.
 
-2. Each question must have:
+2. Follow exam-specific patterns:
 
-* A clear question statement
-* Exactly 4 options
-* Only one correct answer
+If Exam = JEE:
 
-3. Ensure:
+* Focus on multi-step problem solving
+* Include numerical reasoning
+* Combine multiple concepts in one question
+* Avoid direct formula-based questions
 
-* Questions are syllabus-aligned
-* No ambiguity in correct answer
-* No repeated questions
-* Difficulty matches the requested level
+If Exam = NEET:
 
-4. Keep language appropriate to the class level:
+* Focus on NCERT-based concepts
+* Include fact-based + concept-based mix
+* Ensure clarity and precision
 
-* Class 10 → simple and clear
-* Intermediate → slightly more analytical
+If Exam = UPSC:
+
+* Focus on conceptual + current-affairs style
+* Use statement-based questions
+* Include elimination-based options
 
 ---
 
-### Output Format (STRICT JSON)
+3. Each question must have:
+
+* A clear but challenging question
+* Exactly 4 options
+* Only one correct answer
+* High-quality distractors (wrong options should be believable)
+
+---
+
+4. Difficulty Rules:
+
+* Avoid obvious answers
+* Avoid purely theoretical easy questions
+* Force the student to think
+
+---
+
+5. Output Format (STRICT JSON)
 
 [
 {
 "question": "...",
 "options": ["...", "...", "...", "..."],
 "correct_answer": 1,
-"explanation": "..."
+"explanation": "Step-by-step reasoning"
 }
 ]
 
 ---
 
-# 🎯 Why this approach is better
+# 🔥 4. BIG Upgrade: Add “Exam Patterns”
 
-| Approach           | Result               |
-| ------------------ | -------------------- |
-| ❌ Combined prompt  | Messy, unpredictable |
-| ✅ Separate prompts | Clean, controllable  |
+## 🎯 JEE Pattern Enhancements
 
----
+Add variations:
 
-# 🚀 Advanced (Optional Later)
-
-After basic version, you can upgrade:
-
-## 🔁 Dynamic Generation (Hybrid)
-
-* Pre-generate 5 questions
-* During exam:
-
-  * Generate next question based on performance
-
-👉 But not needed now.
+* Integer type questions (no options)
+* Multi-correct (advanced phase later)
 
 ---
 
-# 💡 Final Insight
+## 🩺 NEET Pattern
 
-Think like system design:
-
-* **Generator = Content engine**
-* **Exam AI = Execution engine**
-
-👉 Keep them separate → your system becomes scalable and professional.
+* Direct + conceptual mix
+* More biology-heavy
+* Speed-based solving
 
 ---
 
-# 🧭 What You Should Do Now
+## 🏛️ UPSC Pattern
 
-1. Build **Question Generator API**
-2. Store questions
-3. Feed into **Exam Mode AI**
+Example format:
+
+* “Which of the following statements are correct?”
+
+👉 This is very important.
 
 ---
 
-* Create **dataset structure for storing exams**
+# ⚠️ 5. Real-Time vs Pre-Generated (Important Decision)
 
+## ❌ Don’t do fully real-time generation (yet)
+
+Problems:
+
+* Slow response
+* Inconsistent difficulty
+* Risk of bad questions
+
+---
+
+## ✅ Best Approach (Hybrid)
+
+| Step        | Action                            |
+| ----------- | --------------------------------- |
+| Before exam | Generate 10–20 questions          |
+| During exam | Use them sequentially             |
+| Optional    | Generate next batch in background |
+
+---
+
+# 🧠 6. Make It Feel Like a REAL Exam
+
+## Add these:
+
+### ⏱️ Timer
+
+* Per question or full test
+
+### 📊 No instant feedback (for exam mode)
+
+### 📉 Score only at end
+
+### 🔁 Review answers after exam
+
+---
+
+# 🎤 7. Your Unique Advantage (Use This!)
+
+Since you already built voice:
+
+👉 Do this:
+
+**AI:**
+
+> “Question 3. Solve this…”
+
+**User:**
+
+> “Option 2”
+
+👉 This becomes:
+
+> **Voice-based competitive exam simulator**
+
+Very rare → high impact
+
+---
+
+# ⚠️ 8. Biggest Mistake to Avoid
+
+❌ “Hard = increase difficulty randomly”
+❌ “JEE = just tough math questions”
+
+Instead:
+
+> ✅ Follow actual exam patterns + thinking style
+
+---
+
+# 📊 9. Final Architecture
+
+| Layer       | Role                         |
+| ----------- | ---------------------------- |
+| Generator   | Creates exam-level questions |
+| Exam Engine | Conducts test                |
+| Evaluator   | Scores                       |
+| Analytics   | Tracks performance           |
+
+---
+
+# 💡 Final Verdict
+
+✔ You’re moving in the right direction
+✔ This upgrade is what makes your project **serious-level**
+✔ Focus on **pattern + thinking style**, not just difficulty
+
+---
+
+# 🧭 Next Step
+
+You should now build:
+
+### Phase 2 (Competitive Exams)
+
+* JEE mode generator
+* NEET mode generator
+* UPSC mode generator
+
+---
+
+
+
+EXAM AI
+Welcome to this JEE Physics exam; let's begin.
+
+Question 1 of 5: A block slides down a fixed inclined plane with constant velocity. If the normal force is $N$ and the frictional force is $f$, which of the following is true about the resultant force exerted by the plane on the block?
+Option $2It points vertically upwards.
+Option $2It points perpendicular to the plane.
+Option $2Its magnitude is $\sqrt{N^2 + f^2}$.
+Option $2It points up the plane. Please say Option 1, 2, 3, or 4.
