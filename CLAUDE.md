@@ -28,7 +28,7 @@ Environment file is **`.env`** (not `.env.local`). All keys including `GEMINI_AP
 
 ## What TutorTalk Does
 
-AI-powered Socratic voice tutor. Students speak; the AI guides them to answers through questions — never giving answers directly. Sessions end with a downloadable PDF summary.
+AI-powered Socratic voice tutor. Students speak; the AI guides them to answers through questions — never giving answers directly. Sessions end with a downloadable transcript (`.txt`).
 
 ---
 
@@ -36,10 +36,10 @@ AI-powered Socratic voice tutor. Students speak; the AI guides them to answers t
 
 ### Data flow
 ```
-Browser → POST /api/token       → Clerk auth check, returns GEMINI_API_KEY
-Browser → WebSocket (direct)    → wss://generativelanguage.googleapis.com (Gemini Live)
-Browser → POST /api/session/save → Neon (transcript + metadata)
-Server  → POST /api/session/report → Gemini text → PDF → Cloudinary → Neon (pdf_url)
+Browser → POST /api/token            → Clerk auth check, returns GEMINI_API_KEY
+Browser → WebSocket (direct)         → wss://generativelanguage.googleapis.com (Gemini Live)
+Browser → POST /api/session/save     → Neon (transcript + metadata)
+Browser → GET  /api/session/transcript?sessionId=xxx → returns .txt download
 ```
 
 The WebSocket connects **browser-direct** to Google — Vercel never proxies audio. This is intentional: Vercel's 10s timeout would kill long sessions.
@@ -48,16 +48,17 @@ The WebSocket connects **browser-direct** to Google — Vercel never proxies aud
 | File | Role |
 |------|------|
 | `src/app/session/page.tsx` | Full voice session UI — WebSocket, AudioWorklet, transcript, orb |
-| `src/app/dashboard/page.tsx` | Server Component — fetches sessions + PDF URLs from Neon |
+| `src/app/dashboard/page.tsx` | Server Component — fetches sessions from Neon |
 | `src/app/dashboard/DashboardClient.tsx` | Client UI for dashboard |
 | `src/app/api/token/route.ts` | Returns `GEMINI_API_KEY` to authenticated users |
 | `src/app/api/session/save/route.ts` | Saves transcript + metadata to Neon |
-| `src/app/api/session/report/route.tsx` | Gemini → PDF → Cloudinary → Neon (.tsx for JSX) |
+| `src/app/api/session/transcript/route.ts` | Returns session transcript as `.txt` download |
 | `src/app/api/auth/sync/route.ts` | Upserts Clerk user into Neon `users` table |
-| `src/db/schema.ts` | Drizzle schema: `users`, `sessions`, `reports` |
+| `src/db/schema.ts` | Drizzle schema: `users`, `sessions`, `reports` (`reports` table unused but kept) |
 | `src/lib/audioQueue.ts` | Gapless PCM16 playback via scheduled AudioBufferSourceNodes |
 | `public/worklets/capture-processor.js` | AudioWorklet: Float32 → Int16 mic capture |
 | `src/middleware.ts` | Clerk route protection — MUST be at `src/`, not project root |
+| `src/components/VoiceOrb.tsx` | Animated orb: `'lg' \| 'md' \| 'sm'` sizes |
 
 ---
 
@@ -69,34 +70,104 @@ The WebSocket connects **browser-direct** to Google — Vercel never proxies aud
 - Middleware MUST be at `src/middleware.ts`. Placing it at the project root silently breaks all Clerk auth.
 - Clerk IDs are strings like `user_xxxxxxx` — `clerk_id` is `varchar(255)`, NEVER uuid.
 
-### Gemini Live API — WebSocket setup message
-```json
-{
-  "setup": {
-    "model": "models/gemini-3.1-flash-live-preview",
-    "generationConfig": {
-      "responseModalities": ["AUDIO", "TEXT"]
-    },
-    "tools": [{ "googleSearch": {} }],
-    "systemInstruction": {
-      "parts": [{ "text": "..." }]
-    }
-  }
-}
+
+###
+  Crystal clear. The middleware is at ./middleware.ts but with a src/ project it must be at ./src/middleware.ts.
+
+  
+### Gemini Live API — working config (confirmed)
+```typescript
+const session = await ai.live.connect({
+  model: 'gemini-3.1-flash-live-preview',
+  config: {
+    responseModalities: [Modality.AUDIO],   // AUDIO only works fine
+    speechConfig: { voiceConfig: { prebuiltVoiceConfig: { voiceName: 'Zephyr' } } },
+    tools: [{ googleSearch: {} }],           // camelCase — snake_case causes 1007
+    systemInstruction: { parts: [{ text: systemText }] },
+    inputAudioTranscription: {},             // enables user speech → sc.inputTranscription.text
+    outputAudioTranscription: {},            // enables AI speech  → sc.outputTranscription.text
+  } as any,
+  callbacks: { onopen, onmessage, onclose, onerror },
+});
 ```
-- `responseModalities` must include **both** `"AUDIO"` and `"TEXT"` — omitting `"TEXT"` causes 1007 disconnect.
-- Tools key is `googleSearch` (camelCase) — `google_search` (snake_case) causes 1007.
-- `thinkingConfig` / `thinkingBudget` are NOT supported by the Live API — causes 1007.
-- Any unknown field in `generationConfig` causes immediate 1007 disconnect.
+
+**Critical config notes:**
+- `responseModalities: [Modality.AUDIO]` — TEXT is NOT required for this model version (tested working)
+- `tools` key is `googleSearch` (camelCase) — `google_search` (snake_case) causes 1007
+- `thinkingConfig` / `thinkingBudget` are NOT supported — causes 1007
+- Any unknown field in `generationConfig` causes immediate 1007 disconnect
+- `inputAudioTranscription` and `outputAudioTranscription` are set in config (with "Audio"), but arrive in messages WITHOUT "Audio": `sc.inputTranscription.text` / `sc.outputTranscription.text`
+
+### Gemini Live — transcript message paths (CRITICAL)
+The config key names and the response message paths are **different**:
+
+| Config key | Message path |
+|------------|-------------|
+| `inputAudioTranscription: {}` | `msg.serverContent.inputTranscription.text` |
+| `outputAudioTranscription: {}` | `msg.serverContent.outputTranscription.text` |
+
+**NOT** `msg.inputAudioTranscription` (top level, wrong) — always read from inside `serverContent`.
+
+### Gemini Live — onmessage handler order (CRITICAL)
+The final `outputTranscription` chunk and `turnComplete` often arrive in the **same message**.
+**Always process transcription text BEFORE checking `turnComplete`**, or the last chunk is lost:
+
+```typescript
+onmessage: (msg: any) => {
+  const sc = msg.serverContent;
+
+  // 1. interruption — bail early
+  if (sc?.interrupted) { flush(); return; }
+
+  // 2. user speech transcript
+  if (sc?.inputTranscription?.text?.trim()) {
+    setTranscript(prev => [...prev, { role: 'user', text: sc.inputTranscription.text.trim() }]);
+  }
+
+  // 3. AI speech transcript — accumulate into buffer BEFORE commit
+  if (sc?.outputTranscription?.text?.trim()) {
+    aiBufferRef.current += ' ' + sc.outputTranscription.text.trim();
+    setLiveCaption({ role: 'ai', text: aiBufferRef.current });
+  }
+
+  // 4. audio parts
+  for (const part of sc?.modelTurn?.parts ?? []) {
+    if (part.inlineData?.data) queueAudio(part.inlineData.data);
+  }
+
+  // 5. turnComplete — commit LAST, after all content in this message is processed
+  if (sc?.turnComplete) {
+    if (aiBufferRef.current.trim()) {
+      setTranscript(prev => [...prev, { role: 'ai', text: aiBufferRef.current.trim() }]);
+      aiBufferRef.current = '';
+    }
+    setLiveCaption(null);
+  }
+},
+```
+
+### Gemini Live — greeting / session auto-start
+To make the AI speak immediately on session open (before user says anything):
+
+1. Add to system instruction: `"Begin the session IMMEDIATELY by greeting the student warmly. Do not wait for the student to speak first."`
+2. After `sessionRef.current = session`, send a trigger using **`sendRealtimeInput`** with text:
+
+```typescript
+session.sendRealtimeInput({
+  text: `Greet the student warmly. Let them know you're their ${levelLabel} ${subject} tutor...`,
+});
+```
+
+**Do NOT use `sendClientContent` for the greeting trigger.** Mixing `sendClientContent` and `sendRealtimeInput` in the same session causes immediate disconnect.
 
 ### WebSocket message types
 | Type | When |
 |------|------|
-| `realtimeInput` | Streaming live mic audio chunks |
-| `clientContent` | Only for seeding initial history |
+| `realtimeInput` | Streaming live mic audio chunks AND initial text trigger |
+| `clientContent` | Only for seeding initial history (do NOT mix with realtimeInput) |
 | `toolResponse` | Responding to model function calls |
 
-**Mixing `realtimeInput` and `clientContent` causes the model to not respond.**
+**Mixing `realtimeInput` and `clientContent` causes session disconnect.**
 
 ### Audio
 - Input: PCM16 at **16 kHz** mono. AudioWorklet converts Float32→Int16 in `public/worklets/capture-processor.js`.
@@ -109,14 +180,55 @@ The WebSocket connects **browser-direct** to Google — Vercel never proxies aud
 ### Server events — loop through ALL parts
 A single `serverContent` event can contain audio + transcript simultaneously. Always loop through `modelTurn.parts` — never stop at the first part.
 
-### PDF route
-- `src/app/api/session/report/route.tsx` — must be `.tsx` (uses JSX for `@react-pdf/renderer`).
-- Has `export const maxDuration = 60; export const runtime = "nodejs"` at top.
-- Cloudinary upload uses `resource_type: 'raw'` and base64 data URI.
-- Session save fires PDF generation with `keepalive: true` so it completes after navigation.
-
 ### SDK
 Use `@google/genai` (new unified SDK). `@google/generative-ai` is deprecated.
+
+---
+
+## Voice Code — Our Implementation vs Reference (jaydanurwin/gemini-live-agent-demo)
+
+| Area | Reference demo | TutorTalk | Verdict |
+|------|---------------|-----------|---------|
+| `responseModalities` | `[AUDIO]` | `[AUDIO]` | ✓ same |
+| `outputAudioTranscription` | `{}` in config | `{}` in config | ✓ same |
+| `inputAudioTranscription` | absent | `{}` in config | ✓ **ours better** (user speech transcript) |
+| `speechConfig / Zephyr` | ✓ | ✓ | ✓ same |
+| `tools: googleSearch` | ✓ | ✓ | ✓ same |
+| Mic encoding | `btoa(fromCharCode loop)` | `btoa(String.fromCharCode(...new Uint8Array(buf)))` | ✓ same |
+| Audio output decode | manual Int16→Float32 | `b64ToAudioBuffer()` — same logic | ✓ same |
+| Gapless audio playback | scheduled `AudioBufferSourceNode`s | `AudioQueue` lib — same pattern | ✓ equal/better |
+| Transcript paths | `sc.outputTranscription.text` | `sc.outputTranscription.text` | ✓ same (fixed) |
+| Text → model | `sendClientContent()` | `sendRealtimeInput({ text })` | ✓ ours correct (avoids mixing) |
+| Auto-greet | manual button click | `sendRealtimeInput({ text })` after connect | ✓ ours better (automatic) |
+| Message order | n/a (server-side) | transcription before turnComplete | ✓ ours fixed |
+
+**Conclusion**: TutorTalk's voice implementation is equal or better than the reference on all dimensions.
+
+---
+
+## VoiceOrb sizes
+- `'lg'` — orbPx=176, wrapper=510px (use on landing/picking/connecting screens)
+- `'md'` — orbPx=120, wrapper=348px (use in active session — leaves room for transcript)
+- `'sm'` — orbPx=72,  wrapper=209px (use in saving/small contexts)
+
+EQ bars (speaking animation) show for both `'lg'` and `'md'`. Only `'sm'` shows the mic icon for speaking.
+
+---
+
+## Transcript UI — active session layout
+The active session uses a **vertical layout**: orb section (flexShrink:0) on top, transcript panel (flex:1) below.
+
+Critical CSS to prevent transcript truncation on long conversations:
+```tsx
+{/* Transcript outer container */}
+<div style={{ flex: 1, minHeight: 0, overflow: 'hidden', display: 'flex', flexDirection: 'column' }}>
+  {/* Scrollable messages */}
+  <div style={{ flex: 1, minHeight: 0, overflowY: 'auto' }}>
+    {messages}
+  </div>
+</div>
+```
+Both `flex: 1` containers need `minHeight: 0` — without it, flex children don't scroll (they grow past their container instead).
 
 ---
 
@@ -145,10 +257,14 @@ VoiceOrb states: `idle` (breathe) → `listening` (teal rings) → `speaking` (c
 
 | Symptom | Cause | Fix |
 |---------|-------|-----|
-| 1007 on session start | Unknown field in setup `generationConfig` | Check for `thinkingConfig`, snake_case tool keys, missing `TEXT` in modalities |
+| 1007 on session start | Unknown field in setup `generationConfig` | Check for `thinkingConfig`, snake_case tool keys |
+| Session disconnect after greeting | `sendClientContent` mixed with `sendRealtimeInput` | Use only `sendRealtimeInput({ text })` for greeting trigger |
+| AI transcript entries empty in download | Final `outputTranscription` chunk arrives same message as `turnComplete`; turnComplete ran first | Process `outputTranscription` before `turnComplete` in `onmessage` |
+| No transcript for first AI turn (greeting) | `sendRealtimeInput({ text })` response doesn't populate transcript | Fixed by correct `sc.outputTranscription.text` path + correct message order |
+| Transcript reading from wrong path | Used `msg.inputAudioTranscription` (top-level, wrong) | Read from `msg.serverContent.inputTranscription.text` |
 | `clerkMiddleware() was not run` | `middleware.ts` at project root | Move to `src/middleware.ts` |
 | Users table empty after sign-up | Sync only ran on dashboard visit | `useEffect` in `page.tsx` fires `POST /api/auth/sync` on `isSignedIn && user` |
 | AI doesn't respond to voice | `clientContent` used instead of `realtimeInput` | Switch to `realtimeInput` for all mic audio |
 | AudioContext blocked silently | Created in `useEffect` | Move to `onClick` handler |
 | Garbled audio | Float32 sent instead of Int16 | Verify worklet outputs `Int16Array` |
-| PDF fails on Vercel | `@react-pdf/renderer` in devDependencies | Move to regular dependencies |
+| Transcript truncated / won't scroll | `flex: 1` container missing `minHeight: 0` | Add `minHeight: 0` to both the outer and inner transcript flex containers |

@@ -235,24 +235,14 @@ export default function SessionPage() {
               return;
             }
 
-            if (sc?.turnComplete) {
-              setOrbState('listening');
-              // Commit accumulated AI text to transcript as one entry
-              if (aiBufferRef.current.trim()) {
-                setTranscript(prev => [...prev, { role: 'ai', text: aiBufferRef.current.trim() }]);
-                aiBufferRef.current = '';
-              }
-              setLiveCaption(null);
-            }
-
-            // User speech — show live then add to transcript
+            // User speech — add to transcript
             if (sc?.inputTranscription?.text?.trim()) {
               const t = sc.inputTranscription.text.trim();
               setTranscript(prev => [...prev, { role: 'user', text: t }]);
               setLiveCaption({ role: 'user', text: t });
             }
 
-            // AI speech — accumulate and stream into live caption
+            // AI speech — accumulate BEFORE turnComplete so final chunk isn't lost
             if (sc?.outputTranscription?.text?.trim()) {
               const chunk = sc.outputTranscription.text.trim();
               aiBufferRef.current += (aiBufferRef.current ? ' ' : '') + chunk;
@@ -267,7 +257,6 @@ export default function SessionPage() {
                 queueRef.current?.push(b64ToAudioBuffer(part.inlineData.data, outputCtxRef.current));
                 hasAudio = true;
               }
-              // Text parts fallback (no outputAudioTranscription available)
               const partText = part.text?.trim();
               if (partText && !sc?.outputTranscription?.text) {
                 aiBufferRef.current += (aiBufferRef.current ? ' ' : '') + partText;
@@ -275,6 +264,16 @@ export default function SessionPage() {
               }
             }
             if (hasAudio) setOrbState('speaking');
+
+            // Commit AFTER all content in this message has been processed
+            if (sc?.turnComplete) {
+              setOrbState('listening');
+              if (aiBufferRef.current.trim()) {
+                setTranscript(prev => [...prev, { role: 'ai', text: aiBufferRef.current.trim() }]);
+                aiBufferRef.current = '';
+              }
+              setLiveCaption(null);
+            }
           },
           onclose: () => {
             if (!intentionalCloseRef.current) {

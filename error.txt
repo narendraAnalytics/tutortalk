@@ -1,20 +1,36 @@
-⨯ TypeError: Cannot convert argument to a ByteString because the character at index 40 has a value of 8212 which is greater than 255.
-    at GET (src\app\api\session\pdf\route.ts:27:10)
-  25 |   const subject = session[0].subject ?? 'session';
-  26 |
-> 27 |   return new Response(bytes, {
-     |          ^
-  28 |     headers: {
-  29 |       'Content-Type': 'application/pdf',
-  30 |       'Content-Disposition': `attachment; filename="tutortalk-${subject.toLowerCase()}-report.pdf"`,
- GET /api/session/pdf?sessionId=413f8cdc-70e9-4f5c-acf0-68c27c7910ec 500 in 3.4s (next.js: 103ms, proxy.ts: 37ms, application-code: 3.3s)
-⨯ TypeError: Cannot convert argument to a ByteString because the character at index 40 has a value of 8212 which is greater than 255.
-    at GET (src\app\api\session\pdf\route.ts:27:10)
-  25 |   const subject = session[0].subject ?? 'session';
-  26 |
-> 27 |   return new Response(bytes, {
-     |          ^
-  28 |     headers: {
-  29 |       'Content-Type': 'application/pdf',
-  30 |       'Content-Disposition': `attachment; filename="tutortalk-${subject.toLowerCase()}-report.pdf"`,
- GET /api/session/pdf?sessionId=413f8cdc-70e9-4f5c-acf0-68c27c7910ec 500 in 1014ms (next.js: 7ms, proxy.ts: 33ms, application-code: 974ms)
+TutorTalk — Conversation Transcript
+Subject : Science — The Human Eye and the Colourful World
+Date    : 21 April 2026
+Duration: 4 min
+
+────────────────────────────────────────────────────────────
+
+TutorTalk
+
+
+You
+ちゃらぴー は ない 。
+
+TutorTalk
+
+
+You
+effects of human activity
+
+TutorTalk
+
+
+You
+car track
+
+TutorTalk
+
+
+You
+scattering of light
+
+TutorTalk
+
+
+You
+myopia
