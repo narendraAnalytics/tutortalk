@@ -61,9 +61,9 @@ const CFG: Record<OrbState, {
   },
 };
 
-export default function VoiceOrb({ state = 'idle', size = 'lg' }: { state?: OrbState; size?: 'lg' | 'sm' }) {
-  const isLg = size === 'lg';
-  const orbPx = isLg ? 176 : 72;
+export default function VoiceOrb({ state = 'idle', size = 'lg' }: { state?: OrbState; size?: 'lg' | 'md' | 'sm' }) {
+  const isLg = size !== 'sm';
+  const orbPx = size === 'lg' ? 176 : size === 'md' ? 120 : 72;
   const c = CFG[state];
   const wrap = orbPx * 2.9;
 

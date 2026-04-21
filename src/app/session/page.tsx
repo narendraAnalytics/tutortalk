@@ -544,20 +544,16 @@ export default function SessionPage() {
         </div>
       </div>
 
-      {/* ── Side-by-side: orb left, transcript right ── */}
-      <div style={{ flex: 1, display: 'flex', overflow: 'hidden' }}>
+      {/* ── Orb + Transcript (vertical) ── */}
+      <div style={{ flex: 1, display: 'flex', flexDirection: 'column', alignItems: 'center', overflow: 'hidden' }}>
 
-        {/* ── Left: Orb panel ── */}
-        <div style={{
-          width: 300, flexShrink: 0, overflow: 'hidden',
-          display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center',
-          borderRight: '1px solid #F2E4DB', padding: '0 12px',
-        }}>
-          <VoiceOrb state={orbState} size="lg" />
+        {/* Orb section */}
+        <div style={{ flexShrink: 0, display: 'flex', flexDirection: 'column', alignItems: 'center', paddingTop: 16, width: '100%' }}>
+          <VoiceOrb state={orbState} size="md" />
 
           <p style={{
-            marginTop: -56, position: 'relative', zIndex: 1,
-            fontWeight: 600, fontSize: 14, textAlign: 'center',
+            marginTop: -60, position: 'relative', zIndex: 1,
+            fontWeight: 600, fontSize: 14,
             color: orbState === 'listening' ? '#1D9E75' : orbState === 'speaking' ? '#D85A30' : orbState === 'interrupted' ? '#EF9F27' : '#993C1D',
             transition: 'color 0.3s ease',
           }}>
@@ -566,23 +562,22 @@ export default function SessionPage() {
 
           {/* Live caption */}
           <div style={{
-            marginTop: 10, width: '100%', position: 'relative', zIndex: 1,
-            transition: 'opacity 0.3s ease', opacity: liveCaption ? 1 : 0, pointerEvents: 'none', minHeight: 56,
+            marginTop: 10, width: '100%', maxWidth: 560, padding: '0 20px',
+            transition: 'opacity 0.3s ease', opacity: liveCaption ? 1 : 0, pointerEvents: 'none',
           }}>
             {liveCaption && (
               <div style={{
                 background: liveCaption.role === 'ai' ? '#FFF3EC' : '#EEEDFE',
                 border: `1.5px solid ${liveCaption.role === 'ai' ? '#F2E4DB' : '#D6D3F7'}`,
-                borderRadius: 14, padding: '9px 13px',
-                boxShadow: '0 2px 12px rgba(216,90,48,0.08)',
+                borderRadius: 14, padding: '9px 14px',
               }}>
                 <span style={{
                   fontSize: 9, fontWeight: 800, letterSpacing: '0.08em', textTransform: 'uppercase',
                   color: liveCaption.role === 'ai' ? '#D85A30' : '#7F77DD', display: 'block', marginBottom: 3,
                 }}>
-                  {liveCaption.role === 'ai' ? '🎙 TutorTalk' : '🎤 You'}
+                  {liveCaption.role === 'ai' ? 'TutorTalk' : 'You'}
                 </span>
-                <span style={{ fontSize: 12.5, color: liveCaption.role === 'ai' ? '#4A1B0C' : '#26215C', lineHeight: 1.5, fontWeight: 500 }}>
+                <span style={{ fontSize: 13, color: liveCaption.role === 'ai' ? '#4A1B0C' : '#26215C', lineHeight: 1.5, fontWeight: 500 }}>
                   {liveCaption.text}
                   <span style={{
                     display: 'inline-block', width: 2, height: '1em',
@@ -596,75 +591,51 @@ export default function SessionPage() {
           </div>
         </div>
 
-        {/* ── Right: Transcript panel ── */}
-        <div style={{ flex: 1, display: 'flex', flexDirection: 'column', overflow: 'hidden', background: '#FFFBF7' }}>
+        <style>{`@keyframes blink { 0%,100%{opacity:1} 50%{opacity:0} }`}</style>
 
-          {/* Header */}
-          <div style={{
-            padding: '13px 22px', borderBottom: '1px solid #F2E4DB', flexShrink: 0,
-            display: 'flex', alignItems: 'center', gap: 10, background: '#FFFBF7',
-          }}>
-            <span style={{ fontSize: 11, fontWeight: 800, color: '#993C1D', textTransform: 'uppercase', letterSpacing: '0.1em', opacity: 0.55 }}>
-              Conversation
-            </span>
-            <div style={{ flex: 1, height: 1, background: '#F2E4DB' }} />
-            {transcript.length > 0 && (
-              <span style={{ fontSize: 11, color: '#C4A99A', fontWeight: 600 }}>
-                {transcript.length} {transcript.length === 1 ? 'message' : 'messages'}
+        {/* Transcript */}
+        <div style={{ flex: 1, width: '100%', maxWidth: 680, overflow: 'hidden', display: 'flex', flexDirection: 'column', marginTop: 8 }}>
+
+          {/* Divider shown once messages arrive */}
+          {transcript.length > 0 && (
+            <div style={{ display: 'flex', alignItems: 'center', gap: 8, padding: '0 20px 6px', flexShrink: 0 }}>
+              <div style={{ flex: 1, height: 1, background: '#F2E4DB' }} />
+              <span style={{ fontSize: 10, fontWeight: 700, color: '#C4A99A', letterSpacing: '0.1em', textTransform: 'uppercase' }}>
+                Conversation
               </span>
-            )}
-          </div>
+              <div style={{ flex: 1, height: 1, background: '#F2E4DB' }} />
+            </div>
+          )}
 
-          {/* Messages */}
-          <div style={{ flex: 1, overflowY: 'auto', padding: '16px 20px 36px', display: 'flex', flexDirection: 'column', gap: 14 }}>
+          <div style={{ flex: 1, overflowY: 'auto', padding: '4px 20px 32px', display: 'flex', flexDirection: 'column', gap: 10 }}>
             {transcript.length === 0 && (
-              <p style={{ textAlign: 'center', color: '#C4A99A', fontSize: 14, marginTop: 36 }}>
+              <p style={{ textAlign: 'center', color: '#C4A99A', fontSize: 14, marginTop: 16 }}>
                 Your conversation will appear here…
               </p>
             )}
             {transcript.map((entry, i) => (
-              <div key={i} style={{ display: 'flex', justifyContent: entry.role === 'user' ? 'flex-end' : 'flex-start', alignItems: 'flex-end', gap: 8 }}>
-                {entry.role === 'ai' && (
-                  <div style={{
-                    width: 30, height: 30, borderRadius: '50%', flexShrink: 0,
-                    background: 'linear-gradient(135deg, #D85A30, #EF9F27)',
-                    display: 'flex', alignItems: 'center', justifyContent: 'center',
-                    color: '#fff', fontSize: 10, fontWeight: 800, letterSpacing: '-0.5px',
-                  }}>TT</div>
-                )}
+              <div key={i} style={{ display: 'flex', justifyContent: entry.role === 'user' ? 'flex-end' : 'flex-start' }}>
                 <div style={{
-                  maxWidth: '74%', padding: '10px 15px',
-                  borderRadius: entry.role === 'user' ? '18px 18px 4px 18px' : '18px 18px 18px 4px',
+                  maxWidth: '80%', padding: '10px 15px', borderRadius: 18,
                   background: entry.role === 'user' ? '#EEEDFE' : '#FFF3EC',
                   color: entry.role === 'user' ? '#26215C' : '#4A1B0C',
-                  fontSize: 14, lineHeight: 1.62, fontWeight: 500,
-                  border: `1px solid ${entry.role === 'user' ? '#D6D3F7' : '#F2E4DB'}`,
-                  boxShadow: entry.role === 'user' ? '0 1px 6px rgba(127,119,221,0.12)' : '0 1px 6px rgba(216,90,48,0.08)',
+                  fontSize: 14, lineHeight: 1.6, fontWeight: 500,
+                  borderBottomRightRadius: entry.role === 'user' ? 4 : 18,
+                  borderBottomLeftRadius: entry.role === 'ai' ? 4 : 18,
                 }}>
-                  <span style={{
-                    fontSize: 10, fontWeight: 800, letterSpacing: '0.07em', textTransform: 'uppercase',
-                    color: entry.role === 'ai' ? '#D85A30' : '#7F77DD', display: 'block', marginBottom: 5,
-                  }}>
-                    {entry.role === 'ai' ? 'TutorTalk' : 'You'}
-                  </span>
+                  {entry.role === 'ai' && (
+                    <span style={{ fontSize: 10, fontWeight: 700, color: '#D85A30', display: 'block', marginBottom: 3, textTransform: 'uppercase', letterSpacing: '0.06em' }}>
+                      TutorTalk
+                    </span>
+                  )}
                   {entry.text}
                 </div>
-                {entry.role === 'user' && (
-                  <div style={{
-                    width: 30, height: 30, borderRadius: '50%', flexShrink: 0,
-                    background: 'linear-gradient(135deg, #7F77DD, #A8A3F0)',
-                    display: 'flex', alignItems: 'center', justifyContent: 'center',
-                    color: '#fff', fontSize: 10, fontWeight: 800,
-                  }}>Me</div>
-                )}
               </div>
             ))}
             <div ref={transcriptEndRef} />
           </div>
         </div>
       </div>
-
-      <style>{`@keyframes blink { 0%,100%{opacity:1} 50%{opacity:0} }`}</style>
     </div>
   );
 }
