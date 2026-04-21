@@ -1,36 +1,38 @@
-TutorTalk — Conversation Transcript
-Subject : Science — The Human Eye and the Colourful World
-Date    : 21 April 2026
-Duration: 4 min
+The reason you see the transcript during the live session but get an empty AI message in your download is due to how the **Gemini 3.1 Live API** handles real-time text delivery.
 
-────────────────────────────────────────────────────────────
+In your current code, you are likely only listening to the `outputTranscription` event. However, in Gemini 3.1, the AI's words are often delivered in **two separate ways** that do not always arrive at the same time.
 
-TutorTalk
+### The Technical Cause
+1.  **Independent Events:** The `outputTranscription` (text for the AI's voice) is sent independently of the `modelTurn` (the actual audio data). 
+2.  **Missing "Part" Logic:** Your `onmessage` handler correctly loops through `parts` for audio, but it may be missing the "text" parts that arrive in the same message as the audio.
+3.  **Race Condition:** When you click "End Session," if your code only saved the `outputTranscription` events it received *so far*, it might miss the final "text" parts of the AI's last response which are often bundled inside the `modelTurn` object.
 
+### How to Fix the "Empty AI Message"
+To ensure your download includes everything, update your `onmessage` logic to capture text from **both** sources:
 
-You
-ちゃらぴー は ない 。
+* **Source A (`outputTranscription`):** This is a dedicated event for the AI's transcribed speech.
+* **Source B (`modelTurn.parts`):** In Gemini 3.1, a single server event can contain both audio and text "parts" simultaneously. You must explicitly check for `part.text` inside the `modelTurn` loop.
 
-TutorTalk
+### Updated Logic Recommendation
+Ensure your `onmessage` handler looks like this:
+```javascript
+// 1. Capture the dedicated transcription event
+const outputTx = sc.outputTranscription?.text;
+if (outputTx) {
+  addToTranscript('ai', outputTx);
+}
 
+// 2. ALSO check inside modelTurn parts
+const parts = sc.modelTurn?.parts || [];
+for (const part of parts) {
+  if (part.text) {
+    // Only add if it's not a duplicate of outputTranscription
+    addToTranscript('ai', part.text);
+  }
+}
+```
 
-You
-effects of human activity
+### Why the Download is Empty but the UI is Not
+Your UI might be updating because it reflects the **live stream** of data, but your `saveSession` logic may be using a "transcript" state variable that wasn't updated with the final text parts before the WebSocket closed. 
 
-TutorTalk
-
-
-You
-car track
-
-TutorTalk
-
-
-You
-scattering of light
-
-TutorTalk
-
-
-You
-myopia
+**Pro-Tip:** Use a `transcriptRef` (as seen in your code at) to ensure the very last messages are captured immediately before you trigger the `/api/session/save` call.

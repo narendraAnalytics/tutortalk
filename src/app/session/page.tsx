@@ -97,43 +97,50 @@ function buildSystemInstruction(level: string, subject: string, topic: string, d
   const levelMeta = LEVELS.find(l => l.id === level);
   const levelLabel = levelMeta?.label ?? level;
 
-  return `You are TutorTalk, an expert academic tutor helping a ${levelLabel} student with ${subject}.
-${topic ? `The student wants to study: ${topic}.` : ''}
+  return `You are TutorTalk, a warm, expert academic tutor helping a ${levelLabel} student with ${subject}.
+${topic ? `The student has chosen to study: "${topic}".` : ''}
 Difficulty level: ${difficulty}.
 
-TEACHING APPROACH — follow this every time:
+${topic ? `OPENING GREETING — do this immediately when the session starts:
+1. Greet the student warmly by name if known, otherwise just warmly.
+2. Confirm the topic they picked: "${topic}".
+3. Share a friendly roadmap — identify the key topics and subtopics of "${topic}" at ${levelLabel} level, and mention them naturally: "Here's what we'll explore together: ..."
+4. End with: "Where would you like to start — or is there something specific on your mind?"
 
-1. EXPLAIN FIRST, THEN CHECK
-   - When the student asks about a concept or topic, give a clear, complete explanation.
-   - Cover: what it is, how it works, why it matters, and a real-world or exam-relevant example.
-   - After explaining, ask: "Does this make sense? Any part you'd like me to go deeper on?"
+` : ''}EXPLANATION STYLE — when a student asks you to explain any topic or subtopic:
+1. Give a clear, friendly summary first (2–4 sentences max). Do NOT dump everything at once.
+2. Then ask: "Want me to go deeper into this? Or shall we move on to the next key topic? Or do you have something specific in mind?"
+3. If they want more depth — go deeper with examples, analogies, and step-by-step breakdowns.
+4. After covering a subtopic fully, bridge naturally to the next: "Great! Ready to move on to [next subtopic]?"
 
-2. LEVEL ADAPTATION — ${levelLabel}
+TEACHING APPROACH:
+
+1. LEVEL ADAPTATION — ${levelLabel}
 ${level === 'class10' ? `   - Use simple, everyday language. Avoid heavy formulas unless needed. Use real-life examples.` :
   level === 'intermediate' ? `   - Focus on concept clarity. Introduce formulas and derivations step by step. Encourage structured thinking.` :
   level === 'jee' ? `   - Go deep on concepts. Include problem-solving strategies, shortcuts, and JEE-style application. Ask multi-step reasoning questions.` :
   level === 'neet' ? `   - Emphasize biology, chemistry, and physics at NEET level. Use diagrams described in words. Focus on accuracy and MCQ-style reasoning.` :
   `   - Cover UPSC-relevant depth. Connect facts to analysis. Link topics to current affairs and exam relevance.`}
 
-3. PROBLEM SOLVING (Math / Physics / Chemistry)
+2. PROBLEM SOLVING (Math / Physics / Chemistry)
    - Break problems into steps. Ask the student to attempt each step.
    - Give hints before full solutions. After solving, explain WHY the method works.
    - For ${difficulty === 'Hard' ? 'Hard difficulty: push multi-step problems, edge cases, and exam-level traps.' :
            difficulty === 'Medium' ? 'Medium difficulty: mix concept with application problems.' :
            'Easy difficulty: focus on basics, build intuition before formulas.'}
 
-4. STUDENT QUESTIONS
+3. STUDENT QUESTIONS
    - When the student asks a question, answer it fully and clearly.
    - Never cut an answer short. A complete explanation beats a brief one every time.
    - If the student seems stuck or confused, rephrase using an analogy or a simpler breakdown.
 
-5. REINFORCEMENT
+4. REINFORCEMENT
    - Occasionally summarize key points after a topic is covered.
    - Offer a short practice question when appropriate.
    - Connect new concepts to ones the student has already learned.
    - Be warm, encouraging, and celebrate correct reasoning.
 
-Speak naturally and conversationally — you are a knowledgeable friend helping the student truly understand, not just memorize.
+Speak naturally and conversationally — you are a knowledgeable friend helping the student truly understand, not just memorize. Keep responses concise; invite the student to steer the depth rather than lecturing all at once.
 
 IMPORTANT: Begin the session IMMEDIATELY by greeting the student warmly as described above. Do not wait for the student to speak first — start talking right away.`;
 }
@@ -268,8 +275,9 @@ export default function SessionPage() {
             // Commit AFTER all content in this message has been processed
             if (sc?.turnComplete) {
               setOrbState('listening');
-              if (aiBufferRef.current.trim()) {
-                setTranscript(prev => [...prev, { role: 'ai', text: aiBufferRef.current.trim() }]);
+              const aiText = aiBufferRef.current.trim();
+              if (aiText) {
+                setTranscript(prev => [...prev, { role: 'ai', text: aiText }]);
                 aiBufferRef.current = '';
               }
               setLiveCaption(null);
@@ -298,7 +306,9 @@ export default function SessionPage() {
       const levelLabel = LEVELS.find(l => l.id === level)?.label ?? level;
       const topicLine = topic.trim() ? ` on the topic "${topic.trim()}"` : '';
       session.sendRealtimeInput({
-        text: `Greet the student warmly. Let them know you're their ${levelLabel} ${subject} tutor${topicLine}. Tell them the difficulty is set to ${difficulty}. Ask them what they'd like to learn or which specific concept or problem they want help with today.`,
+        text: topic.trim()
+          ? `Greet the student warmly. Tell them you're their ${levelLabel} ${subject} tutor. Confirm their chosen topic: "${topic.trim()}". Then identify the key topics and subtopics of "${topic.trim()}" at ${levelLabel} level and share them as a friendly roadmap — say something like "Here's what we'll explore together:" and list them naturally. End by asking where they'd like to start or if they have something specific in mind. Difficulty is set to ${difficulty}.`
+          : `Greet the student warmly. Let them know you're their ${levelLabel} ${subject} tutor. Tell them the difficulty is set to ${difficulty}. Ask them what topic or concept they'd like to explore today.`,
       });
 
     } catch (err: unknown) {
@@ -588,48 +598,69 @@ export default function SessionPage() {
           </div>
         </div>
 
-        <style>{`@keyframes blink { 0%,100%{opacity:1} 50%{opacity:0} }`}</style>
+        <style>{`
+          @keyframes blink { 0%,100%{opacity:1} 50%{opacity:0} }
+          @keyframes transcriptGlow {
+            0%,100% { box-shadow: 0 0 0px 0px #D85A3000, inset 0 0 0px 0px #D85A3000; border-color: #F2E4DB; }
+            50%      { box-shadow: 0 0 20px 5px #D85A3035, inset 0 0 10px 0px #EF9F2712; border-color: #D85A3070; }
+          }
+        `}</style>
 
-        {/* Transcript */}
-        <div style={{ flex: 1, minHeight: 0, width: '100%', maxWidth: 680, overflow: 'hidden', display: 'flex', flexDirection: 'column', marginTop: 8 }}>
+        {/* Transcript — glowing box */}
+        <div style={{
+          flex: 1, minHeight: 0, width: '100%', maxWidth: 680,
+          display: 'flex', flexDirection: 'column',
+          margin: '8px 0 16px',
+          padding: '0 16px',
+          boxSizing: 'border-box',
+        }}>
+          <div style={{
+            flex: 1, minHeight: 0, display: 'flex', flexDirection: 'column',
+            border: '1.5px solid #F2E4DB',
+            borderRadius: 20,
+            background: '#FFF8F3',
+            overflow: 'hidden',
+            animation: 'transcriptGlow 2.5s ease-in-out infinite',
+          }}>
 
-          {/* Divider shown once messages arrive */}
-          {transcript.length > 0 && (
-            <div style={{ display: 'flex', alignItems: 'center', gap: 8, padding: '0 20px 6px', flexShrink: 0 }}>
-              <div style={{ flex: 1, height: 1, background: '#F2E4DB' }} />
-              <span style={{ fontSize: 10, fontWeight: 700, color: '#C4A99A', letterSpacing: '0.1em', textTransform: 'uppercase' }}>
-                Conversation
-              </span>
-              <div style={{ flex: 1, height: 1, background: '#F2E4DB' }} />
-            </div>
-          )}
-
-          <div style={{ flex: 1, minHeight: 0, overflowY: 'auto', padding: '4px 20px 32px', display: 'flex', flexDirection: 'column', gap: 10 }}>
-            {transcript.length === 0 && (
-              <p style={{ textAlign: 'center', color: '#C4A99A', fontSize: 14, marginTop: 16 }}>
-                Your conversation will appear here…
-              </p>
-            )}
-            {transcript.map((entry, i) => (
-              <div key={i} style={{ display: 'flex', justifyContent: entry.role === 'user' ? 'flex-end' : 'flex-start' }}>
-                <div style={{
-                  maxWidth: '80%', padding: '10px 15px', borderRadius: 18,
-                  background: entry.role === 'user' ? '#EEEDFE' : '#FFF3EC',
-                  color: entry.role === 'user' ? '#26215C' : '#4A1B0C',
-                  fontSize: 14, lineHeight: 1.6, fontWeight: 500,
-                  borderBottomRightRadius: entry.role === 'user' ? 4 : 18,
-                  borderBottomLeftRadius: entry.role === 'ai' ? 4 : 18,
-                }}>
-                  {entry.role === 'ai' && (
-                    <span style={{ fontSize: 10, fontWeight: 700, color: '#D85A30', display: 'block', marginBottom: 3, textTransform: 'uppercase', letterSpacing: '0.06em' }}>
-                      TutorTalk
-                    </span>
-                  )}
-                  {entry.text}
-                </div>
+            {/* Divider shown once messages arrive */}
+            {transcript.length > 0 && (
+              <div style={{ display: 'flex', alignItems: 'center', gap: 8, padding: '10px 16px 6px', flexShrink: 0 }}>
+                <div style={{ flex: 1, height: 1, background: '#F2E4DB' }} />
+                <span style={{ fontSize: 10, fontWeight: 700, color: '#C4A99A', letterSpacing: '0.1em', textTransform: 'uppercase' }}>
+                  Conversation
+                </span>
+                <div style={{ flex: 1, height: 1, background: '#F2E4DB' }} />
               </div>
-            ))}
-            <div ref={transcriptEndRef} />
+            )}
+
+            <div style={{ flex: 1, minHeight: 0, overflowY: 'auto', padding: '4px 16px 24px', display: 'flex', flexDirection: 'column', gap: 10 }}>
+              {transcript.length === 0 && (
+                <p style={{ textAlign: 'center', color: '#C4A99A', fontSize: 14, marginTop: 20 }}>
+                  Your conversation will appear here…
+                </p>
+              )}
+              {transcript.map((entry, i) => (
+                <div key={i} style={{ display: 'flex', justifyContent: entry.role === 'user' ? 'flex-end' : 'flex-start' }}>
+                  <div style={{
+                    maxWidth: '80%', padding: '10px 15px', borderRadius: 18,
+                    background: entry.role === 'user' ? '#EEEDFE' : '#FFF3EC',
+                    color: entry.role === 'user' ? '#26215C' : '#4A1B0C',
+                    fontSize: 14, lineHeight: 1.6, fontWeight: 500,
+                    borderBottomRightRadius: entry.role === 'user' ? 4 : 18,
+                    borderBottomLeftRadius: entry.role === 'ai' ? 4 : 18,
+                  }}>
+                    {entry.role === 'ai' && (
+                      <span style={{ fontSize: 10, fontWeight: 700, color: '#D85A30', display: 'block', marginBottom: 3, textTransform: 'uppercase', letterSpacing: '0.06em' }}>
+                        TutorTalk
+                      </span>
+                    )}
+                    {entry.text}
+                  </div>
+                </div>
+              ))}
+              <div ref={transcriptEndRef} />
+            </div>
           </div>
         </div>
       </div>
