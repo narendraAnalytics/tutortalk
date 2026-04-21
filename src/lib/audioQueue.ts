@@ -19,6 +19,10 @@ export class AudioQueue {
     };
   }
 
+  isEmpty(): boolean {
+    return this.active.length === 0;
+  }
+
   // Stop all buffered audio immediately — called on barge-in
   flush(): void {
     this.active.forEach(s => { try { s.stop(); } catch {} });

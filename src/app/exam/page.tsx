@@ -52,7 +52,6 @@ const EXAM_SUBJECTS: Record<string, { name: string; bg: string; color: string }[
 };
 
 const QUESTION_COUNTS = [5, 10, 15];
-const TIME_LIMITS = [30, 60, 90, 120];
 
 const STATUS_LABEL: Record<OrbState, string> = {
   idle: 'Starting exam…',
@@ -107,7 +106,7 @@ function parseResult(text: string): 'correct' | 'incorrect' | null {
 function formatAiText(text: string): string {
   return text
     .replace(/\s+(Question\s+\d+\s+of\s+\d+[.:)]?\s*)/gi, '\n\n$1')
-    .replace(/\s+(Option\s+[1-4]\s*[:.]?\s)/gi, '\nOption $2')
+    .replace(/\s+(Option\s+[1-4]\s*[:.]?\s)/gi, '\n$1')
     // keep "Option 1:" format clean
     .replace(/Option\s+([1-4])\s*[:.]?\s/g, 'Option $1: ')
     .trim();
@@ -142,9 +141,8 @@ Rules:
    - Correct: "Correct! [3–5 words max — why]"
    - Incorrect: "Incorrect. Answer is Option Y. [3–5 words max — why]"
 7. Say "Next question." and continue.
-8. If you receive "Time is up!" — say "Time up! Moving on." then present the next question immediately. Do NOT say Correct or Incorrect.
-9. After all ${n} questions say exactly: "Exam complete! You answered all ${n} questions."
-10. Begin IMMEDIATELY — one-sentence welcome then Question 1.
+8. After all ${n} questions say exactly: "Exam complete! You answered all ${n} questions."
+9. Begin IMMEDIATELY — one-sentence welcome then Question 1.
 
 CRITICAL: Always use "You selected Option X." before Correct/Incorrect. Explanations 3–5 words only.`;
 }
@@ -162,9 +160,8 @@ export default function ExamPage() {
   const [correctCount, setCorrectCount] = useState(0);
   const [answeredCount, setAnsweredCount] = useState(0);
   const [error, setError] = useState<string | null>(null);
-  const [questionTimeLimit, setQuestionTimeLimit] = useState(60);
-  const [questionTimerSecs, setQuestionTimerSecs] = useState(60);
   const [marks, setMarks] = useState(0);
+  const [countdown, setCountdown] = useState(0);
 
   useEffect(() => { setSubject(null); }, [level]);
 
@@ -186,27 +183,30 @@ export default function ExamPage() {
   const subjectRef = useRef<string | null>(null);
   const levelRef = useRef<string | null>(null);
   const questionCountRef = useRef(10);
-  const questionTimerRef = useRef<ReturnType<typeof setInterval> | null>(null);
-  const questionTimerSecsRef = useRef(60);
-  const questionTimeLimitRef = useRef(60);
   const lastQuestionRef = useRef(0);
-  const questionAnsweredRef = useRef(false);
   const marksRef = useRef(0);
+  const countdownRef = useRef(0);
 
   useEffect(() => { transcriptRef.current = transcript; }, [transcript]);
   useEffect(() => { transcriptEndRef.current?.scrollIntoView({ behavior: 'smooth' }); }, [transcript]);
   useEffect(() => { subjectRef.current = subject; }, [subject]);
   useEffect(() => { levelRef.current = level; }, [level]);
   useEffect(() => { questionCountRef.current = questionCount; }, [questionCount]);
-  useEffect(() => { questionTimeLimitRef.current = questionTimeLimit; }, [questionTimeLimit]);
   useEffect(() => {
     if (phase === 'active') {
       timerRef.current = setInterval(() => {
         setDuration(d => { durationRef.current = d + 1; return d + 1; });
+        countdownRef.current -= 1;
+        setCountdown(countdownRef.current);
+        if (countdownRef.current <= 0 && !examDoneRef.current) {
+          handleEndExam();
+        }
       }, 1000);
       return () => clearInterval(timerRef.current!);
     }
+  // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [phase]);
+
   useEffect(() => () => cleanup(), []);
 
   function cleanup() {
@@ -218,7 +218,6 @@ export default function ExamPage() {
     outputCtxRef.current?.close().catch(() => {});
     queueRef.current?.flush();
     if (timerRef.current) clearInterval(timerRef.current);
-    if (questionTimerRef.current) clearInterval(questionTimerRef.current);
   }
 
   async function saveAndFinish() {
@@ -277,9 +276,9 @@ export default function ExamPage() {
     setMarks(0);
     setCurrentQuestion(1);
     lastQuestionRef.current = 0;
-    questionAnsweredRef.current = false;
-    questionTimerSecsRef.current = questionTimeLimitRef.current;
-    setQuestionTimerSecs(questionTimeLimitRef.current);
+    const totalTime = questionCount * 60;
+    countdownRef.current = totalTime;
+    setCountdown(totalTime);
 
     try {
       const inputCtx = new AudioContext({ sampleRate: 16000 });
@@ -355,21 +354,15 @@ export default function ExamPage() {
               if (aiText) {
                 setTranscript(prev => [...prev, { role: 'ai', text: aiText }]);
 
-                // Detect new question → start per-question timer
+                // Detect new question → state change triggers the per-question timer useEffect
                 const qNum = parseQuestionNumber(aiText);
                 if (qNum !== null && qNum !== lastQuestionRef.current) {
                   lastQuestionRef.current = qNum;
                   setCurrentQuestion(qNum);
-                  startQuestionTimer();
                 }
 
-                // Answer confirmed → stop per-question timer, count as answered
-                if (parseConfirmedAnswer(aiText) && !questionAnsweredRef.current) {
-                  questionAnsweredRef.current = true;
-                  if (questionTimerRef.current) {
-                    clearInterval(questionTimerRef.current);
-                    questionTimerRef.current = null;
-                  }
+                // Answer confirmed → count as answered
+                if (parseConfirmedAnswer(aiText)) {
                   answeredCountRef.current += 1;
                   setAnsweredCount(answeredCountRef.current);
                 }
@@ -426,31 +419,6 @@ export default function ExamPage() {
       setPhase('picking');
       cleanup();
     }
-  }
-
-  function startQuestionTimer() {
-    if (questionTimerRef.current) clearInterval(questionTimerRef.current);
-    questionAnsweredRef.current = false;
-    questionTimerSecsRef.current = questionTimeLimitRef.current;
-    setQuestionTimerSecs(questionTimeLimitRef.current);
-
-    questionTimerRef.current = setInterval(() => {
-      questionTimerSecsRef.current -= 1;
-      setQuestionTimerSecs(questionTimerSecsRef.current);
-
-      if (questionTimerSecsRef.current <= 0) {
-        clearInterval(questionTimerRef.current!);
-        questionTimerRef.current = null;
-        if (!questionAnsweredRef.current && !examDoneRef.current) {
-          questionAnsweredRef.current = true;
-          answeredCountRef.current += 1;
-          setAnsweredCount(answeredCountRef.current);
-          marksRef.current -= 1;
-          setMarks(marksRef.current);
-          sessionRef.current?.sendRealtimeInput({ text: 'Time is up! Move to the next question immediately.' });
-        }
-      }
-    }, 1000);
   }
 
   function wireMic(ctx: AudioContext, stream: MediaStream) {
@@ -577,6 +545,8 @@ export default function ExamPage() {
                   setDuration(0);
                   durationRef.current = 0;
                   lastQuestionRef.current = 0;
+                  countdownRef.current = 0;
+                  setCountdown(0);
                   setTranscript([]);
                   setPhase('picking');
                 }}
@@ -665,17 +635,6 @@ export default function ExamPage() {
               ✓ {correctCount}
             </div>
 
-            {/* Per-question countdown */}
-            <div style={{
-              background: questionTimerSecs > 30 ? '#DCFCE7' : questionTimerSecs > 10 ? '#FEF3C7' : '#FEE2E2',
-              color: questionTimerSecs > 30 ? '#15803D' : questionTimerSecs > 10 ? '#D97706' : '#DC2626',
-              padding: '3px 11px', borderRadius: 99, fontWeight: 800, fontSize: 12,
-              fontFamily: 'var(--font-poppins)',
-              border: `1.5px solid ${questionTimerSecs <= 10 ? '#DC262640' : 'transparent'}`,
-            }}>
-              ⏱ {questionTimerSecs}s
-            </div>
-
             <div style={{ flex: 1 }} />
 
             {/* Marks badge */}
@@ -688,10 +647,23 @@ export default function ExamPage() {
               {marks >= 0 ? '+' : ''}{marks} marks
             </div>
 
-            {/* Overall elapsed */}
-            <div style={{ fontFamily: 'var(--font-poppins)', fontWeight: 700, fontSize: 12, color: '#1E3A8A', opacity: 0.65 }}>
-              {fmtTime(duration)}
-            </div>
+            {/* Exam countdown */}
+            {(() => {
+              const totalTime = questionCountRef.current * 60;
+              const pct = countdown / totalTime;
+              const cBg = pct > 0.5 ? '#DCFCE7' : pct > 0.25 ? '#FEF3C7' : '#FEE2E2';
+              const cCol = pct > 0.5 ? '#15803D' : pct > 0.25 ? '#D97706' : '#DC2626';
+              return (
+                <div style={{
+                  background: cBg, color: cCol,
+                  padding: '3px 12px', borderRadius: 99, fontWeight: 800, fontSize: 12,
+                  fontFamily: 'var(--font-poppins)',
+                  border: `1.5px solid ${pct <= 0.25 ? '#DC262640' : 'transparent'}`,
+                }}>
+                  ⏱ {fmtTime(Math.max(0, countdown))}
+                </div>
+              );
+            })()}
 
             <button
               onClick={handleEndExam}
@@ -869,29 +841,13 @@ export default function ExamPage() {
             </div>
           )}
 
-          {/* Step 4: Time per question */}
-          {level && subject && (
-            <div style={{ marginBottom: 40 }}>
-              <p style={{ fontSize: 13, fontWeight: 700, color: '#3B5BDB', textTransform: 'uppercase', letterSpacing: '0.06em', marginBottom: 12 }}>
-                4 · Time per question
-              </p>
-              <div style={{ display: 'flex', gap: 10, flexWrap: 'wrap' }}>
-                {TIME_LIMITS.map(t => (
-                  <button key={t} onClick={() => setQuestionTimeLimit(t)} style={{ padding: '10px 22px', borderRadius: 999, cursor: 'pointer', border: `2px solid ${questionTimeLimit === t ? '#3B5BDB' : 'transparent'}`, background: questionTimeLimit === t ? '#EDF2FF' : 'rgba(255,255,255,0.7)', color: '#3B5BDB', fontWeight: 700, fontSize: 14, transition: 'all 0.15s', transform: questionTimeLimit === t ? 'scale(1.05)' : 'scale(1)', boxShadow: questionTimeLimit === t ? '0 4px 16px rgba(59,91,219,0.2)' : 'none' }}>
-                    {t}s
-                  </button>
-                ))}
-              </div>
-            </div>
-          )}
-
           <button className="exam-cta-btn" onClick={handleStartExam} disabled={!level || !subject} style={{ width: '100%', padding: '16px', borderRadius: 16, color: '#FFFFFF', fontSize: 17, fontWeight: 800, fontFamily: 'var(--font-poppins)', letterSpacing: '-0.3px' }}>
             Begin Exam →
           </button>
 
           <div style={{ marginTop: 24, background: 'rgba(255,255,255,0.7)', borderRadius: 14, padding: '14px 18px', border: '1.5px solid rgba(59,91,219,0.12)' }}>
             <p style={{ fontSize: 13, color: '#3B5BDB', opacity: 0.75, lineHeight: 1.6, margin: 0 }}>
-              📝 <strong>How it works:</strong> The AI asks MCQ questions one at a time. Say your answer — &quot;Option 1&quot;, &quot;B&quot;, or &quot;Second&quot;. <strong>+4 for correct, −1 for wrong.</strong> Each question has a countdown timer. Marks and score shown at the end.
+              📝 <strong>How it works:</strong> The AI asks MCQ questions one at a time. Say your answer — &quot;Option 1&quot;, &quot;B&quot;, or &quot;Second&quot;. <strong>+4 for correct, −1 for wrong.</strong> You get 1 minute per question (5 questions = 5 min). Exam auto-ends when time runs out.
             </p>
           </div>
 
