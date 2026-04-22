@@ -381,10 +381,7 @@ export default function SessionPage() {
   }
 
   const rawSubjects = level ? LEVEL_SUBJECTS[level] : [];
-  // Free plan: only show allowed subjects
-  const currentSubjects = isFree && limits.tutorSubjects
-    ? rawSubjects.filter(s => (limits.tutorSubjects as string[]).includes(s.name))
-    : rawSubjects;
+  const currentSubjects = rawSubjects;
   const subjectMeta = currentSubjects.find(s => s.name === subject);
   const levelMeta = LEVELS.find(l => l.id === level);
   const canStart = !!level && !!subject;
@@ -468,22 +465,29 @@ export default function SessionPage() {
                 2 · Subject
               </p>
               <div style={{ display: 'flex', gap: 10, flexWrap: 'wrap' }}>
-                {currentSubjects.map(s => (
-                  <button
-                    key={s.name}
-                    onClick={() => setSubject(s.name)}
-                    style={{
-                      padding: '10px 22px', borderRadius: 999, cursor: 'pointer',
-                      border: `2px solid ${subject === s.name ? s.color : 'transparent'}`,
-                      background: subject === s.name ? s.bg : '#FFF3EC',
-                      color: s.color, fontWeight: 700, fontSize: 14,
-                      transition: 'all 0.15s', transform: subject === s.name ? 'scale(1.05)' : 'scale(1)',
-                      boxShadow: subject === s.name ? `0 4px 16px ${s.color}30` : 'none',
-                    }}
-                  >
-                    {s.name}
-                  </button>
-                ))}
+                {currentSubjects.map(s => {
+                  const isLocked = isFree && !!limits.tutorSubjects &&
+                    !(limits.tutorSubjects as string[]).includes(s.name);
+                  return (
+                    <button
+                      key={s.name}
+                      onClick={() => { if (!isLocked) setSubject(s.name); }}
+                      style={{
+                        padding: '10px 22px', borderRadius: 999,
+                        cursor: isLocked ? 'not-allowed' : 'pointer',
+                        border: isLocked ? '2px solid transparent' : `2px solid ${subject === s.name ? s.color : 'transparent'}`,
+                        background: isLocked ? '#F3F0FA' : (subject === s.name ? s.bg : '#FFF3EC'),
+                        color: isLocked ? '#9B8EC4' : s.color,
+                        fontWeight: 700, fontSize: 14, opacity: isLocked ? 0.55 : 1,
+                        transition: 'all 0.15s',
+                        transform: !isLocked && subject === s.name ? 'scale(1.05)' : 'scale(1)',
+                        boxShadow: !isLocked && subject === s.name ? `0 4px 16px ${s.color}30` : 'none',
+                      }}
+                    >
+                      {isLocked ? '🔒 ' : ''}{s.name}
+                    </button>
+                  );
+                })}
               </div>
             </div>
           )}

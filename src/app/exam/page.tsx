@@ -445,11 +445,7 @@ export default function ExamPage() {
   }
 
   const rawExamSubjects = level ? EXAM_SUBJECTS[level] : [];
-  const currentSubjects = isFree && limits.examSubjects
-    ? rawExamSubjects.filter(s => (limits.examSubjects as string[]).some(
-        allowed => s.name.toLowerCase().includes(allowed.toLowerCase())
-      ))
-    : rawExamSubjects;
+  const currentSubjects = rawExamSubjects;
   const levelMeta = EXAM_LEVELS.find(l => l.id === level);
 
   // ─── Results ────────────────────────────────────────────────────────────────
@@ -843,11 +839,27 @@ export default function ExamPage() {
                 2 · Subject
               </p>
               <div style={{ display: 'flex', gap: 10, flexWrap: 'wrap' }}>
-                {currentSubjects.map(s => (
-                  <button key={s.name} onClick={() => setSubject(s.name)} style={{ padding: '10px 22px', borderRadius: 999, cursor: 'pointer', border: `2px solid ${subject === s.name ? s.color : 'transparent'}`, background: subject === s.name ? s.bg : 'rgba(255,255,255,0.7)', color: s.color, fontWeight: 700, fontSize: 14, transition: 'all 0.15s', transform: subject === s.name ? 'scale(1.05)' : 'scale(1)', boxShadow: subject === s.name ? `0 4px 16px ${s.color}30` : 'none' }}>
-                    {s.name}
-                  </button>
-                ))}
+                {currentSubjects.map(s => {
+                  const isLocked = isFree && !!limits.examSubjects &&
+                    !(limits.examSubjects as string[]).some(
+                      allowed => s.name.toLowerCase().includes(allowed.toLowerCase())
+                    );
+                  return (
+                    <button key={s.name} onClick={() => { if (!isLocked) setSubject(s.name); }} style={{
+                      padding: '10px 22px', borderRadius: 999,
+                      cursor: isLocked ? 'not-allowed' : 'pointer',
+                      border: isLocked ? '2px solid transparent' : `2px solid ${subject === s.name ? s.color : 'transparent'}`,
+                      background: isLocked ? 'rgba(200,210,255,0.3)' : (subject === s.name ? s.bg : 'rgba(255,255,255,0.7)'),
+                      color: isLocked ? '#6B7ADB' : s.color,
+                      fontWeight: 700, fontSize: 14, opacity: isLocked ? 0.55 : 1,
+                      transition: 'all 0.15s',
+                      transform: !isLocked && subject === s.name ? 'scale(1.05)' : 'scale(1)',
+                      boxShadow: !isLocked && subject === s.name ? `0 4px 16px ${s.color}30` : 'none',
+                    }}>
+                      {isLocked ? '🔒 ' : ''}{s.name}
+                    </button>
+                  );
+                })}
               </div>
             </div>
           )}
