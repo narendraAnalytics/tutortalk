@@ -58,7 +58,9 @@ The WebSocket connects **browser-direct** to Google — Vercel never proxies aud
 | `src/app/dashboard/page.tsx` | Server Component — fetches sessions from Neon, syncs plan from Clerk, shapes `SessionRow[]`, limits history for free plan |
 | `src/app/dashboard/DashboardClient.tsx` | Client UI — nav with plan badge + UserButton, session list with type/score badges, upgrade nudge for free users |
 | `src/app/api/token/route.ts` | Returns `GEMINI_API_KEY` to authenticated users |
-| `src/app/api/session/save/route.ts` | Saves transcript + metadata; enforces monthly session limit per plan before inserting; syncs plan to DB |
+| `src/app/api/session/save/route.ts` | Saves transcript + metadata; enforces monthly session/exam limits; syncs plan to DB |
+| `src/app/api/session/status/route.ts` | Pre-flight check — returns `{ sessionsLeft, limitReached }` for current month |
+| `src/app/api/exam/status/route.ts` | Pre-flight check — returns `{ examsLeft, limitReached }` for current month |
 | `src/app/api/session/transcript/route.ts` | Returns session transcript as PDF download |
 | `src/app/api/auth/sync/route.ts` | Upserts Clerk user into Neon `users` table |
 | `src/lib/plans.ts` | **Single source of truth** for plan limits, badges, and `getPlanFromHas()` helper |
@@ -103,11 +105,12 @@ When reading `type` from DB, always guard: `(r.type ?? 'tutor') as 'tutor' | 'ex
 type PlanKey = 'free' | 'plus' | 'pro'
 
 PLAN_LIMITS = {
-  free:  { sessionsPerMonth: 2, sessionMinutes: 10, dashboardHistory: 1,
+  free:  { sessionsPerMonth: 2, sessionMinutes: 5, examsPerMonth: 1, dashboardHistory: 1,
            tutorSubjects: ['Math','English','History'], examSubjects: ['Math','Chemistry'],
            examMaxQuestions: 5, allowHardDifficulty: false },
-  plus:  { sessionsPerMonth: 30, sessionMinutes: 30, dashboardHistory: Infinity, ... },
-  pro:   { sessionsPerMonth: Infinity, sessionMinutes: Infinity, ... },
+  plus:  { sessionsPerMonth: 30, sessionMinutes: 30, examsPerMonth: 30, dashboardHistory: Infinity,
+           tutorSubjects: null, examSubjects: null, examMaxQuestions: null, allowHardDifficulty: true },
+  pro:   { sessionsPerMonth: Infinity, sessionMinutes: Infinity, examsPerMonth: Infinity, ... },
 }
 ```
 
@@ -130,12 +133,15 @@ const plan = getPlanFromHas(has as (p: { plan: string }) => boolean);
 | Restriction | Enforced in |
 |---|---|
 | Monthly session count | `POST /api/session/save` — returns `{ error: 'SESSION_LIMIT_REACHED' }` 403 |
+| Monthly exam count | `POST /api/session/save` — returns `{ error: 'EXAM_LIMIT_REACHED' }` 403 |
 | Dashboard history limit | `src/app/dashboard/page.tsx` — slices rows before passing to client |
 | Tutor subject filter | `src/app/session/page.tsx` picking UI |
-| 10-min session auto-end | `src/app/session/page.tsx` timer effect |
+| Session auto-end timer | `src/app/session/page.tsx` timer effect — fires for any plan where `limits.sessionMinutes !== Infinity` (free: 5 min, plus: 30 min) |
 | Hard difficulty locked | `src/app/session/page.tsx` difficulty picker |
 | Exam subject filter | `src/app/exam/page.tsx` picking UI |
 | Exam question count locked to 5 | `src/app/exam/page.tsx` picking UI |
+| Pre-flight limit check (session) | `GET /api/session/status` — called on session page mount for non-pro plans |
+| Pre-flight limit check (exam) | `GET /api/exam/status` — called on exam page mount for non-pro plans |
 
 ### Plan badge
 `PLAN_BADGE` from `src/lib/plans.ts` drives the badge shown in both the landing page navbar and the dashboard navbar. Badge reads from Clerk session token synchronously via `useAuth().has()`.
