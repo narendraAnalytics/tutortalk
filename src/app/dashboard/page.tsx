@@ -1,9 +1,10 @@
-import { currentUser } from '@clerk/nextjs/server';
+import { currentUser, auth } from '@clerk/nextjs/server';
 import { redirect } from 'next/navigation';
 import { db } from '@/db';
 import { users, sessions } from '@/db/schema';
 import { eq, desc } from 'drizzle-orm';
 import DashboardClient from './DashboardClient';
+import { getPlanFromHas, PLAN_LIMITS, type PlanKey } from '@/lib/plans';
 
 export type SessionRow = {
   id: string;
@@ -20,17 +21,24 @@ export default async function DashboardPage() {
   const user = await currentUser();
   if (!user) redirect('/');
 
+  const { has } = await auth();
+  const plan = getPlanFromHas(has as (p: { plan: string }) => boolean);
+
   // Lazy sync: upsert Clerk user into Neon on dashboard visit
   const email = user.emailAddresses[0]?.emailAddress ?? '';
   const name  = [user.firstName, user.lastName].filter(Boolean).join(' ') || null;
   const existing = await db.select().from(users).where(eq(users.clerkId, user.id)).limit(1);
   if (existing.length === 0) {
-    await db.insert(users).values({ clerkId: user.id, email, name });
+    await db.insert(users).values({ clerkId: user.id, email, name, plan });
+  } else if (existing[0].plan !== plan) {
+    await db.update(users).set({ plan }).where(eq(users.clerkId, user.id));
   }
 
   const dbUser = existing[0] ?? (await db.select().from(users).where(eq(users.clerkId, user.id)).limit(1))[0];
 
-  // Fetch sessions + their report PDF URLs in one query
+  const limits = PLAN_LIMITS[plan as PlanKey];
+
+  // Fetch sessions ordered newest first
   const rows = await db
     .select({
       id:          sessions.id,
@@ -46,7 +54,7 @@ export default async function DashboardPage() {
     .orderBy(desc(sessions.startedAt));
 
   // Shape data for client component
-  const sessionData: SessionRow[] = rows.map(r => {
+  const allSessionData: SessionRow[] = rows.map(r => {
     const entries: { role: string; text: string }[] = r.transcript
       ? JSON.parse(r.transcript)
       : [];
@@ -63,10 +71,15 @@ export default async function DashboardPage() {
     };
   });
 
-  // Metrics
-  const totalSessions  = sessionData.length;
-  const totalMinutes   = Math.round(sessionData.reduce((s, r) => s + r.durationSecs, 0) / 60);
-  const topicsCovered  = new Set(sessionData.map(s => s.subject)).size;
+  // Free plan: limit dashboard history to 1 session
+  const sessionData = limits.dashboardHistory === Infinity
+    ? allSessionData
+    : allSessionData.slice(0, limits.dashboardHistory);
+
+  // Metrics always computed from ALL sessions (not limited slice)
+  const totalSessions  = allSessionData.length;
+  const totalMinutes   = Math.round(allSessionData.reduce((s, r) => s + r.durationSecs, 0) / 60);
+  const topicsCovered  = new Set(allSessionData.map(s => s.subject)).size;
 
   const firstName = user.firstName ?? email.split('@')[0] ?? 'there';
 
@@ -77,6 +90,7 @@ export default async function DashboardPage() {
       totalSessions={totalSessions}
       totalMinutes={totalMinutes}
       topicsCovered={topicsCovered}
+      plan={plan as PlanKey}
     />
   );
 }

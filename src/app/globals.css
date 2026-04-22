@@ -137,6 +137,7 @@
   }
   html {
     @apply font-sans;
+    scroll-behavior: smooth;
   }
 }
 
@@ -186,7 +187,34 @@
 
 /* ── Responsive helpers ──────────────────────────────────────────────────── */
 .tt-nav {
-  padding: 22px clamp(18px, 4vw, 52px);
+  padding: 16px clamp(18px, 4vw, 52px);
+}
+.tt-nav-sticky {
+  position: sticky;
+  top: 0;
+  z-index: 50;
+  background: rgba(255,251,247,0.88);
+  backdrop-filter: blur(14px);
+  -webkit-backdrop-filter: blur(14px);
+  border: none;
+  box-shadow: none;
+}
+.tt-nav-link {
+  color: #993C1D;
+  font-weight: 600;
+  font-size: 14px;
+  text-decoration: none;
+  transition: color 0.18s;
+  background: none;
+  border: none;
+  cursor: pointer;
+  font-family: var(--font-poppins);
+  padding: 0;
+  letter-spacing: -0.1px;
+}
+.tt-nav-link:hover { color: #D85A30; }
+@media (max-width: 640px) {
+  .tt-nav-links { display: none !important; }
 }
 .tt-section {
   padding-left: clamp(18px, 4vw, 52px);

@@ -3,9 +3,11 @@
 import { useEffect, useRef, useState } from 'react';
 import { useRouter } from 'next/navigation';
 import Link from 'next/link';
+import { useAuth } from '@clerk/nextjs';
 import VoiceOrb from '@/components/VoiceOrb';
 import { AudioQueue } from '@/lib/audioQueue';
 import { GoogleGenAI, Modality } from '@google/genai';
+import { getPlanFromHas, PLAN_LIMITS, type PlanKey } from '@/lib/plans';
 
 type Phase = 'picking' | 'connecting' | 'active' | 'saving';
 type OrbState = 'idle' | 'listening' | 'speaking' | 'interrupted';
@@ -147,6 +149,11 @@ IMPORTANT: Begin the session IMMEDIATELY by greeting the student warmly as descr
 
 export default function SessionPage() {
   const router = useRouter();
+  const { has } = useAuth();
+
+  const plan: PlanKey = has ? getPlanFromHas(has as (p: { plan: string }) => boolean) : 'free';
+  const limits = PLAN_LIMITS[plan];
+  const isFree = plan === 'free';
 
   const [phase, setPhase] = useState<Phase>('picking');
   const [level, setLevel] = useState<string | null>(null);
@@ -158,6 +165,8 @@ export default function SessionPage() {
   const [liveCaption, setLiveCaption] = useState<{ role: 'user' | 'ai'; text: string } | null>(null);
   const [duration, setDuration] = useState(0);
   const [error, setError] = useState<string | null>(null);
+  const [limitReached, setLimitReached] = useState(false); // monthly session limit hit
+  const [freeTimeWarning, setFreeTimeWarning] = useState(false);
 
   // Reset subject when level changes
   useEffect(() => { setSubject(null); }, [level]);
@@ -178,9 +187,20 @@ export default function SessionPage() {
   useEffect(() => { transcriptEndRef.current?.scrollIntoView({ behavior: 'smooth' }); }, [transcript]);
   useEffect(() => {
     if (phase === 'active') {
-      timerRef.current = setInterval(() => setDuration(d => d + 1), 1000);
+      timerRef.current = setInterval(() => {
+        setDuration(d => {
+          const next = d + 1;
+          if (isFree && limits.sessionMinutes !== Infinity) {
+            const maxSecs = limits.sessionMinutes * 60;
+            if (next >= maxSecs - 60 && next < maxSecs) setFreeTimeWarning(true);
+            if (next >= maxSecs) handleEndSession();
+          }
+          return next;
+        });
+      }, 1000);
       return () => clearInterval(timerRef.current!);
     }
+  // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [phase]);
   useEffect(() => () => cleanup(), []);
 
@@ -348,12 +368,23 @@ export default function SessionPage() {
           startedAt: startedAtRef.current.toISOString(),
         }),
       });
-      if (!saveRes.ok) console.error('Session save failed');
+      if (saveRes.status === 403) {
+        const body = await saveRes.json();
+        if (body.error === 'SESSION_LIMIT_REACHED') {
+          setLimitReached(true);
+          setPhase('picking');
+          return;
+        }
+      }
     } catch { /* navigate anyway */ }
     router.push('/dashboard');
   }
 
-  const currentSubjects = level ? LEVEL_SUBJECTS[level] : [];
+  const rawSubjects = level ? LEVEL_SUBJECTS[level] : [];
+  // Free plan: only show allowed subjects
+  const currentSubjects = isFree && limits.tutorSubjects
+    ? rawSubjects.filter(s => (limits.tutorSubjects as string[]).includes(s.name))
+    : rawSubjects;
   const subjectMeta = currentSubjects.find(s => s.name === subject);
   const levelMeta = LEVELS.find(l => l.id === level);
   const canStart = !!level && !!subject;
@@ -370,9 +401,40 @@ export default function SessionPage() {
           <h1 style={{ fontSize: 'clamp(1.6rem, 4vw, 2.2rem)', fontWeight: 800, color: '#4A1B0C', fontFamily: 'var(--font-poppins)', marginBottom: 6 }}>
             Set up your session
           </h1>
-          <p style={{ color: '#993C1D', fontSize: 15, marginBottom: 36, opacity: 0.8 }}>
+          <p style={{ color: '#993C1D', fontSize: 15, marginBottom: 24, opacity: 0.8 }}>
             Choose your study level, subject, and difficulty to get a personalised tutor.
           </p>
+
+          {/* ── Monthly limit reached ── */}
+          {limitReached && (
+            <div style={{ background: 'linear-gradient(135deg,#FFF4EE,#FFF8F3)', border: '1.5px solid rgba(216,90,48,0.2)', borderRadius: 18, padding: '22px 24px', marginBottom: 28, display: 'flex', gap: 16, alignItems: 'flex-start' }}>
+              <div style={{ fontSize: 28, flexShrink: 0 }}>📅</div>
+              <div>
+                <p style={{ fontWeight: 700, color: '#4A1B0C', fontSize: 15, marginBottom: 6, fontFamily: 'var(--font-poppins)' }}>Monthly session limit reached</p>
+                <p style={{ color: '#993C1D', fontSize: 13.5, lineHeight: 1.6, marginBottom: 14 }}>
+                  You&apos;ve used all <strong>2 free sessions</strong> this month. Upgrade to Plus for 30 sessions or Pro for unlimited.
+                </p>
+                <a href="/#pricing" style={{ display: 'inline-block', background: 'linear-gradient(135deg,#D85A30,#EF9F27)', color: '#FFFBF7', padding: '10px 22px', borderRadius: 99, textDecoration: 'none', fontWeight: 700, fontSize: 13, fontFamily: 'var(--font-poppins)' }}>
+                  View plans →
+                </a>
+              </div>
+            </div>
+          )}
+
+          {/* ── Free plan info banner ── */}
+          {isFree && !limitReached && (
+            <div style={{ background: '#F0EDF9', border: '1.5px solid rgba(107,93,176,0.18)', borderRadius: 14, padding: '14px 18px', marginBottom: 28, display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: 12, flexWrap: 'wrap' }}>
+              <div style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
+                <span style={{ fontSize: 16 }}>⚡</span>
+                <span style={{ color: '#6B5DB0', fontSize: 13, fontWeight: 600 }}>
+                  Free plan · {limits.tutorSubjects?.join(', ')} only · {limits.sessionMinutes}-min limit · Easy &amp; Medium only
+                </span>
+              </div>
+              <a href="/#pricing" style={{ color: '#6B5DB0', fontSize: 12, fontWeight: 700, textDecoration: 'none', borderBottom: '1.5px solid #6B5DB055', whiteSpace: 'nowrap' }}>
+                Upgrade →
+              </a>
+            </div>
+          )}
 
           {/* ── Step 1: Exam Level ── */}
           <div style={{ marginBottom: 32 }}>
@@ -456,23 +518,32 @@ export default function SessionPage() {
                 4 · Difficulty
               </p>
               <div style={{ display: 'flex', gap: 10, flexWrap: 'wrap' }}>
-                {DIFFICULTIES.map(d => (
-                  <button
-                    key={d.label}
-                    onClick={() => setDifficulty(d.label)}
-                    style={{
-                      padding: '10px 22px', borderRadius: 999, cursor: 'pointer',
-                      border: `2px solid ${difficulty === d.label ? d.color : 'transparent'}`,
-                      background: difficulty === d.label ? d.bg : '#FFF3EC',
-                      color: d.color, fontWeight: 700, fontSize: 14,
-                      transition: 'all 0.15s', transform: difficulty === d.label ? 'scale(1.05)' : 'scale(1)',
-                      boxShadow: difficulty === d.label ? `0 4px 16px ${d.color}30` : 'none',
-                    }}
-                  >
-                    {d.label}
-                    <span style={{ fontWeight: 400, fontSize: 12, marginLeft: 6, opacity: 0.75 }}>· {d.desc}</span>
-                  </button>
-                ))}
+                {DIFFICULTIES.map(d => {
+                  const lockedForFree = isFree && d.label === 'Hard';
+                  return (
+                    <button
+                      key={d.label}
+                      onClick={() => !lockedForFree && setDifficulty(d.label)}
+                      disabled={lockedForFree}
+                      title={lockedForFree ? 'Upgrade to unlock Hard difficulty' : undefined}
+                      style={{
+                        padding: '10px 22px', borderRadius: 999,
+                        cursor: lockedForFree ? 'not-allowed' : 'pointer',
+                        border: `2px solid ${difficulty === d.label ? d.color : lockedForFree ? 'rgba(0,0,0,0.07)' : 'transparent'}`,
+                        background: lockedForFree ? '#F5F0FF' : difficulty === d.label ? d.bg : '#FFF3EC',
+                        color: lockedForFree ? '#BDB5D5' : d.color,
+                        fontWeight: 700, fontSize: 14,
+                        transition: 'all 0.15s',
+                        transform: difficulty === d.label ? 'scale(1.05)' : 'scale(1)',
+                        boxShadow: difficulty === d.label ? `0 4px 16px ${d.color}30` : 'none',
+                        opacity: lockedForFree ? 0.55 : 1,
+                      }}
+                    >
+                      {lockedForFree ? '🔒 ' : ''}{d.label}
+                      <span style={{ fontWeight: 400, fontSize: 12, marginLeft: 6, opacity: 0.75 }}>· {lockedForFree ? 'Plus/Pro only' : d.desc}</span>
+                    </button>
+                  );
+                })}
               </div>
             </div>
           )}
@@ -538,6 +609,17 @@ export default function SessionPage() {
           </div>
         </div>
         <div className="tt-session-topbar-right">
+          {/* Free plan time remaining */}
+          {isFree && limits.sessionMinutes !== Infinity && (
+            <span style={{
+              fontSize: 12, fontWeight: 700, fontFamily: 'var(--font-poppins)',
+              padding: '4px 12px', borderRadius: 99,
+              background: freeTimeWarning ? '#FEE2E2' : '#F0EDF9',
+              color: freeTimeWarning ? '#B91C1C' : '#6B5DB0',
+            }}>
+              ⏱ {fmtTime(Math.max(0, limits.sessionMinutes * 60 - duration))} left
+            </span>
+          )}
           <span style={{ fontSize: 11, fontWeight: 700, color: '#993C1D', opacity: 0.5 }}>{difficulty}</span>
           <span style={{ fontSize: 'clamp(15px, 2.5vw, 20px)', fontWeight: 800, color: '#4A1B0C', fontVariantNumeric: 'tabular-nums', letterSpacing: '0.5px' }}>
             {fmtTime(duration)}

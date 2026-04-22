@@ -1,7 +1,9 @@
 'use client';
 
 import Link from 'next/link';
+import { UserButton } from '@clerk/nextjs';
 import type { SessionRow } from './page';
+import { PLAN_BADGE, type PlanKey } from '@/lib/plans';
 
 const SUBJECT_STYLE: Record<string, { bg: string; color: string; glow: string }> = {
   Math:           { bg: '#FAECE7', color: '#D85A30', glow: '#D85A3030' },
@@ -46,9 +48,11 @@ type Props = {
   totalSessions: number;
   totalMinutes: number;
   topicsCovered: number;
+  plan: PlanKey;
 };
 
-export default function DashboardClient({ firstName, sessions, totalSessions, totalMinutes, topicsCovered }: Props) {
+export default function DashboardClient({ firstName, sessions, totalSessions, totalMinutes, topicsCovered, plan }: Props) {
+  const badge = PLAN_BADGE[plan];
   const hour = new Date().getHours();
   const greeting = hour < 12 ? 'Good morning' : hour < 17 ? 'Good afternoon' : 'Good evening';
 
@@ -246,9 +250,24 @@ export default function DashboardClient({ firstName, sessions, totalSessions, to
               alt="TutorTalk" style={{ width: 34, height: 34, objectFit: 'contain' }} />
             <span style={{ fontSize: 18, fontWeight: 800, color: '#4A1B0C', letterSpacing: '-0.4px', fontFamily: 'var(--font-poppins)' }}>TutorTalk</span>
           </Link>
-          <Link href="/session" className="cta-btn" style={{ color: '#FFFBF7', padding: '10px 26px', borderRadius: 99, textDecoration: 'none', fontWeight: 700, fontSize: 14, fontFamily: 'var(--font-poppins)' }}>
-            + New session
-          </Link>
+          <div style={{ display: 'flex', alignItems: 'center', gap: 14 }}>
+            {/* Plan badge */}
+            <span style={{
+              padding: '5px 14px', borderRadius: 99,
+              background: badge.isGradient ? badge.bg : badge.bg,
+              backgroundImage: badge.isGradient ? badge.bg : undefined,
+              color: badge.color,
+              fontWeight: 700, fontSize: 12, fontFamily: 'var(--font-poppins)',
+              letterSpacing: '0.3px',
+              boxShadow: '0 1px 8px rgba(0,0,0,0.08)',
+            }}>
+              {badge.label}
+            </span>
+            <Link href="/session" className="cta-btn" style={{ color: '#FFFBF7', padding: '10px 26px', borderRadius: 99, textDecoration: 'none', fontWeight: 700, fontSize: 14, fontFamily: 'var(--font-poppins)' }}>
+              + New session
+            </Link>
+            <UserButton />
+          </div>
         </div>
 
         {/* ── Animated line accent ── */}
@@ -274,6 +293,31 @@ export default function DashboardClient({ firstName, sessions, totalSessions, to
                 : `You've completed ${totalSessions} session${totalSessions !== 1 ? 's' : ''} — keep the momentum going!`}
             </p>
           </div>
+
+          {/* ── Free plan upgrade nudge ── */}
+          {plan === 'free' && (
+            <div style={{
+              display: 'flex', alignItems: 'center', justifyContent: 'space-between', flexWrap: 'wrap', gap: 14,
+              background: 'linear-gradient(135deg, #FFF4EE, #FFF8F3)',
+              border: '1.5px solid rgba(216,90,48,0.15)', borderRadius: 18,
+              padding: '18px 24px', marginBottom: 36, animation: 'fadeUp .6s ease backwards',
+            }}>
+              <div style={{ display: 'flex', alignItems: 'center', gap: 14 }}>
+                <div style={{ fontSize: 28 }}>⚡</div>
+                <div>
+                  <p style={{ fontWeight: 700, color: '#4A1B0C', fontSize: 15, marginBottom: 3, fontFamily: 'var(--font-poppins)' }}>
+                    You&apos;re on the Free plan
+                  </p>
+                  <p style={{ color: '#993C1D', fontSize: 13, opacity: 0.8 }}>
+                    2 sessions/month · 3 subjects · 10-min limit · 1 session visible
+                  </p>
+                </div>
+              </div>
+              <a href="/#pricing" className="cta-btn" style={{ color: '#FFFBF7', padding: '10px 22px', borderRadius: 99, textDecoration: 'none', fontWeight: 700, fontSize: 13, fontFamily: 'var(--font-poppins)', whiteSpace: 'nowrap' }}>
+                Upgrade →
+              </a>
+            </div>
+          )}
 
           {/* ── Metric cards ── */}
           <div className="tt-grid-3-metric" style={{ marginBottom: 52 }}>

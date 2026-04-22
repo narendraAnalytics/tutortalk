@@ -1,253 +1,80 @@
-You’re thinking in the right direction—but there’s a key shift you need to make:
-
-> For **JEE / NEET / UPSC**, you don’t just need “more questions”
-> You need **exam-quality, pattern-aware, pressure-tested questions**
-
----
-
-# 🎯 1. What “Real Exam Questions” Actually Means
-
-For each exam, “real” has a **very specific definition**:
-
-| Exam | What “Real” Means                                |
-| ---- | ------------------------------------------------ |
-| JEE  | Multi-step numerical MCQs, tricky concepts       |
-| NEET | NCERT-based, concept + fact precision            |
-| UPSC | Current affairs + conceptual + elimination logic |
-
-👉 So you must **change your generator logic**, not just increase difficulty.
-
----
-
-# 🧠 2. Upgrade Your Question Generator (CRITICAL)
-
-Your current generator:
-
-> ❌ “Generate MCQs”
-
-You need:
-
-> ✅ “Generate exam-pattern questions”
-
----
-
-# 🚀 3. Advanced Question Generator Prompt (JEE / NEET / UPSC)
-
-Use this as a **separate high-level generator**
-
----
-
-You are an expert exam paper setter for competitive exams like JEE, NEET, and UPSC.
-
-Your task is to generate REAL exam-level multiple-choice questions that closely match actual exam patterns, difficulty, and thinking level.
-
----
-
-### Context
-
-* Exam: {exam} (JEE / NEET / UPSC)
-* Subject: {subject}
-* Topic: {topic}
-* Difficulty: Hard
-* Number of Questions: {n}
-
----
-
-### Instructions
-
-1. Questions must feel like REAL exam questions, not basic practice.
-
-2. Follow exam-specific patterns:
-
-If Exam = JEE:
-
-* Focus on multi-step problem solving
-* Include numerical reasoning
-* Combine multiple concepts in one question
-* Avoid direct formula-based questions
-
-If Exam = NEET:
-
-* Focus on NCERT-based concepts
-* Include fact-based + concept-based mix
-* Ensure clarity and precision
-
-If Exam = UPSC:
-
-* Focus on conceptual + current-affairs style
-* Use statement-based questions
-* Include elimination-based options
-
----
-
-3. Each question must have:
-
-* A clear but challenging question
-* Exactly 4 options
-* Only one correct answer
-* High-quality distractors (wrong options should be believable)
-
----
-
-4. Difficulty Rules:
-
-* Avoid obvious answers
-* Avoid purely theoretical easy questions
-* Force the student to think
-
----
-
-5. Output Format (STRICT JSON)
-
-[
-{
-"question": "...",
-"options": ["...", "...", "...", "..."],
-"correct_answer": 1,
-"explanation": "Step-by-step reasoning"
-}
-]
-
----
-
-# 🔥 4. BIG Upgrade: Add “Exam Patterns”
-
-## 🎯 JEE Pattern Enhancements
-
-Add variations:
-
-* Integer type questions (no options)
-* Multi-correct (advanced phase later)
-
----
-
-## 🩺 NEET Pattern
-
-* Direct + conceptual mix
-* More biology-heavy
-* Speed-based solving
-
----
-
-## 🏛️ UPSC Pattern
-
-Example format:
-
-* “Which of the following statements are correct?”
-
-👉 This is very important.
-
----
-
-# ⚠️ 5. Real-Time vs Pre-Generated (Important Decision)
-
-## ❌ Don’t do fully real-time generation (yet)
-
-Problems:
-
-* Slow response
-* Inconsistent difficulty
-* Risk of bad questions
-
----
-
-## ✅ Best Approach (Hybrid)
-
-| Step        | Action                            |
-| ----------- | --------------------------------- |
-| Before exam | Generate 10–20 questions          |
-| During exam | Use them sequentially             |
-| Optional    | Generate next batch in background |
-
----
-
-# 🧠 6. Make It Feel Like a REAL Exam
-
-## Add these:
-
-### ⏱️ Timer
-
-* Per question or full test
-
-### 📊 No instant feedback (for exam mode)
-
-### 📉 Score only at end
-
-### 🔁 Review answers after exam
-
----
-
-# 🎤 7. Your Unique Advantage (Use This!)
-
-Since you already built voice:
-
-👉 Do this:
-
-**AI:**
-
-> “Question 3. Solve this…”
-
-**User:**
-
-> “Option 2”
-
-👉 This becomes:
-
-> **Voice-based competitive exam simulator**
-
-Very rare → high impact
-
----
-
-# ⚠️ 8. Biggest Mistake to Avoid
-
-❌ “Hard = increase difficulty randomly”
-❌ “JEE = just tough math questions”
-
-Instead:
-
-> ✅ Follow actual exam patterns + thinking style
-
----
-
-# 📊 9. Final Architecture
-
-| Layer       | Role                         |
-| ----------- | ---------------------------- |
-| Generator   | Creates exam-level questions |
-| Exam Engine | Conducts test                |
-| Evaluator   | Scores                       |
-| Analytics   | Tracks performance           |
-
----
-
-# 💡 Final Verdict
-
-✔ You’re moving in the right direction
-✔ This upgrade is what makes your project **serious-level**
-✔ Focus on **pattern + thinking style**, not just difficulty
-
----
-
-# 🧭 Next Step
-
-You should now build:
-
-### Phase 2 (Competitive Exams)
-
-* JEE mode generator
-* NEET mode generator
-* UPSC mode generator
-
----
-
-
-
-EXAM AI
-Welcome to this JEE Physics exam; let's begin.
-
-Question 1 of 5: A block slides down a fixed inclined plane with constant velocity. If the normal force is $N$ and the frictional force is $f$, which of the following is true about the resultant force exerted by the plane on the block?
-Option $2It points vertically upwards.
-Option $2It points perpendicular to the plane.
-Option $2Its magnitude is $\sqrt{N^2 + f^2}$.
-Option $2It points up the plane. Please say Option 1, 2, 3, or 4.
+======================================================
+  TUTORTALK — SUGGESTED PRICING PLANS
+======================================================
+
+──────────────────────────────────────────────────────
+  FREE  —  $0 / month  (forever)
+──────────────────────────────────────────────────────
+  ✓  2 voice tutor sessions per month
+  ✓  2 subjects only (Math & English & History)
+  ✓  10-minute session time limit
+  ✓  Last 2 sessions in dashboard history
+  ✗  No PDF transcript downloads
+  ✓  Exam mode (JEE / NEET / UPSC / Class 10) 2 subjects [math & chemistry] 5 questios
+  ✗  No session report insights
+
+  Goal: Let users try the core voice tutor,
+        then hit a wall and upgrade.
+
+──────────────────────────────────────────────────────
+  PLUS  —  $9 / month
+──────────────────────────────────────────────────────
+  ✓  40 voice tutor sessions per month
+  ✓  All 6 subjects (Math, Physics, Chemistry,
+       Biology, English, History)
+  ✓  30-minute session time limit
+  ✓  Full dashboard history (last 30 sessions)
+  ✓  PDF transcript downloads (up to 20/month)
+  ✓  Exam mode — Class 10 & Intermediate only
+  ✗  No JEE / NEET / UPSC exam levels
+  ✗  No priority support
+
+  Goal: Students doing board exam prep —
+        good value, clear ceiling to push Pro.
+
+──────────────────────────────────────────────────────
+  PRO  —  $19 / month
+──────────────────────────────────────────────────────
+  ✓  Unlimited voice tutor sessions
+  ✓  All 6 subjects
+  ✓  Unlimited session duration
+  ✓  Full dashboard history (all sessions)
+  ✓  Unlimited PDF transcript downloads
+  ✓  All 5 exam levels:
+       Class 10, Intermediate, JEE, NEET, UPSC
+  ✓  Priority support
+  ✓  Early access to new features
+
+  Goal: Serious competitive exam aspirants
+        (JEE / NEET / UPSC) — power users.
+
+======================================================
+  SUMMARY TABLE
+======================================================
+
+  Feature                  | Free  | Plus  | Pro
+  -------------------------|-------|-------|--------
+  Price / month            | $0    | $9    | $19
+  Tutor sessions           | 5     | 40    | Unlimited
+  Subjects                 | 2     | 6     | 6
+  Session time limit       | 10min | 30min | Unlimited
+  Dashboard history        | 3     | 30    | All
+  PDF downloads            | No    | 20/mo | Unlimited
+  Exam mode                | No    | Basic | All levels
+  JEE / NEET / UPSC        | No    | No    | Yes
+  Priority support         | No    | No    | Yes
+
+======================================================
+  IMPLEMENTATION NOTES
+======================================================
+
+  - Store plan in the `users` table: plan varchar(10)
+    DEFAULT 'free', plan_expires_at timestamp
+  - Check session count in /api/session/save route
+    before saving — return 403 if limit hit
+  - Payment: Stripe Checkout is the easiest integration
+  - Yearly discount suggestion:
+      Plus  yearly = $79/yr  (save ~$29 vs monthly)
+      Pro   yearly = $149/yr (save ~$79 vs monthly)
+
+======================================================

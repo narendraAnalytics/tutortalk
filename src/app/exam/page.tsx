@@ -2,9 +2,11 @@
 
 import { useEffect, useRef, useState } from 'react';
 import Link from 'next/link';
+import { useAuth } from '@clerk/nextjs';
 import VoiceOrb from '@/components/VoiceOrb';
 import { AudioQueue } from '@/lib/audioQueue';
 import { GoogleGenAI, Modality } from '@google/genai';
+import { getPlanFromHas, PLAN_LIMITS, type PlanKey } from '@/lib/plans';
 
 type Phase = 'picking' | 'connecting' | 'active' | 'saving' | 'results';
 type OrbState = 'idle' | 'listening' | 'speaking' | 'interrupted';
@@ -148,10 +150,15 @@ CRITICAL: Always use "You selected Option X." before Correct/Incorrect. Explanat
 }
 
 export default function ExamPage() {
+  const { has } = useAuth();
+  const plan: PlanKey = has ? getPlanFromHas(has as (p: { plan: string }) => boolean) : 'free';
+  const limits = PLAN_LIMITS[plan];
+  const isFree = plan === 'free';
+
   const [phase, setPhase] = useState<Phase>('picking');
   const [level, setLevel] = useState<string | null>(null);
   const [subject, setSubject] = useState<string | null>(null);
-  const [questionCount, setQuestionCount] = useState<number>(10);
+  const [questionCount, setQuestionCount] = useState<number>(isFree ? limits.examMaxQuestions ?? 5 : 10);
   const [orbState, setOrbState] = useState<OrbState>('idle');
   const [transcript, setTranscript] = useState<Entry[]>([]);
   const [liveCaption, setLiveCaption] = useState<{ role: 'user' | 'ai'; text: string } | null>(null);
@@ -437,7 +444,12 @@ export default function ExamPage() {
     };
   }
 
-  const currentSubjects = level ? EXAM_SUBJECTS[level] : [];
+  const rawExamSubjects = level ? EXAM_SUBJECTS[level] : [];
+  const currentSubjects = isFree && limits.examSubjects
+    ? rawExamSubjects.filter(s => (limits.examSubjects as string[]).some(
+        allowed => s.name.toLowerCase().includes(allowed.toLowerCase())
+      ))
+    : rawExamSubjects;
   const levelMeta = EXAM_LEVELS.find(l => l.id === level);
 
   // ─── Results ────────────────────────────────────────────────────────────────
@@ -785,9 +797,24 @@ export default function ExamPage() {
           <h1 style={{ fontSize: 'clamp(1.6rem, 4vw, 2.2rem)', fontWeight: 800, color: '#1E3A8A', fontFamily: 'var(--font-poppins)', marginBottom: 6 }}>
             Start your exam
           </h1>
-          <p style={{ color: '#3B5BDB', fontSize: 15, marginBottom: 36, opacity: 0.8 }}>
+          <p style={{ color: '#3B5BDB', fontSize: 15, marginBottom: 24, opacity: 0.8 }}>
             Choose your level, subject, and number of questions to begin.
           </p>
+
+          {/* ── Free plan info ── */}
+          {isFree && (
+            <div style={{ background: '#F0EDF9', border: '1.5px solid rgba(107,93,176,0.18)', borderRadius: 14, padding: '14px 18px', marginBottom: 28, display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: 12, flexWrap: 'wrap' }}>
+              <div style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
+                <span style={{ fontSize: 16 }}>⚡</span>
+                <span style={{ color: '#6B5DB0', fontSize: 13, fontWeight: 600 }}>
+                  Free plan · Math &amp; Chemistry only · 5 questions max
+                </span>
+              </div>
+              <a href="/#pricing" style={{ color: '#6B5DB0', fontSize: 12, fontWeight: 700, textDecoration: 'none', borderBottom: '1.5px solid #6B5DB055', whiteSpace: 'nowrap' }}>
+                Upgrade →
+              </a>
+            </div>
+          )}
 
           {error && (
             <div style={{ background: '#FEE2E2', color: '#DC2626', borderRadius: 12, padding: '12px 18px', marginBottom: 24, fontSize: 14, fontWeight: 600 }}>
@@ -831,13 +858,24 @@ export default function ExamPage() {
               <p style={{ fontSize: 13, fontWeight: 700, color: '#3B5BDB', textTransform: 'uppercase', letterSpacing: '0.06em', marginBottom: 12 }}>
                 3 · Number of questions
               </p>
-              <div style={{ display: 'flex', gap: 10, flexWrap: 'wrap' }}>
-                {QUESTION_COUNTS.map(n => (
-                  <button key={n} onClick={() => setQuestionCount(n)} style={{ padding: '10px 28px', borderRadius: 999, cursor: 'pointer', border: `2px solid ${questionCount === n ? '#3B5BDB' : 'transparent'}`, background: questionCount === n ? '#EDF2FF' : 'rgba(255,255,255,0.7)', color: '#3B5BDB', fontWeight: 700, fontSize: 14, transition: 'all 0.15s', transform: questionCount === n ? 'scale(1.05)' : 'scale(1)', boxShadow: questionCount === n ? '0 4px 16px rgba(59,91,219,0.2)' : 'none' }}>
-                    {n} questions
-                  </button>
-                ))}
-              </div>
+              {isFree ? (
+                <div style={{ display: 'flex', alignItems: 'center', gap: 12 }}>
+                  <div style={{ padding: '10px 28px', borderRadius: 999, border: '2px solid #6B5DB0', background: '#F0EDF9', color: '#6B5DB0', fontWeight: 700, fontSize: 14 }}>
+                    5 questions
+                  </div>
+                  <span style={{ color: '#6B5DB0', fontSize: 12, fontWeight: 600, opacity: 0.8 }}>
+                    Free plan limit · <a href="/#pricing" style={{ color: '#6B5DB0' }}>Upgrade for 10 or 15</a>
+                  </span>
+                </div>
+              ) : (
+                <div style={{ display: 'flex', gap: 10, flexWrap: 'wrap' }}>
+                  {QUESTION_COUNTS.map(n => (
+                    <button key={n} onClick={() => setQuestionCount(n)} style={{ padding: '10px 28px', borderRadius: 999, cursor: 'pointer', border: `2px solid ${questionCount === n ? '#3B5BDB' : 'transparent'}`, background: questionCount === n ? '#EDF2FF' : 'rgba(255,255,255,0.7)', color: '#3B5BDB', fontWeight: 700, fontSize: 14, transition: 'all 0.15s', transform: questionCount === n ? 'scale(1.05)' : 'scale(1)', boxShadow: questionCount === n ? '0 4px 16px rgba(59,91,219,0.2)' : 'none' }}>
+                      {n} questions
+                    </button>
+                  ))}
+                </div>
+              )}
             </div>
           )}
 

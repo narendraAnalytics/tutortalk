@@ -6,6 +6,7 @@ export const users = pgTable("users", {
   clerkId: varchar("clerk_id", { length: 255 }).unique().notNull(),
   email: varchar("email", { length: 255 }).unique().notNull(),
   name: varchar("name", { length: 255 }),
+  plan: varchar("plan", { length: 20 }).default("free").notNull(),
   createdAt: timestamp("created_at").defaultNow(),
 });
 

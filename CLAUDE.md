@@ -31,7 +31,7 @@ Environment file is **`.env`** (not `.env.local`). All keys including `GEMINI_AP
 AI-powered voice learning platform with two modes:
 
 1. **Train** (`/session`) — Socratic voice tutor. AI guides students to answers through questions, never giving answers directly. Sessions end with a downloadable PDF transcript.
-2. **Exam** (`/exam`) — Voice MCQ exam conductor. AI asks numbered questions with 4 options, student answers by voice, AI gives immediate correct/incorrect feedback with a brief explanation (3–5 words). Results screen shows score, accuracy %, and time taken.
+2. **Exam** (`/exam`) — Voice MCQ exam conductor. AI asks numbered questions with 4 options, student answers by voice, AI gives immediate correct/incorrect feedback with a brief explanation (3–5 words). Supports **5 exam levels**: Class 10, Intermediate, JEE, NEET, UPSC — each with exam-pattern-specific system prompts. Scoring is **+4 correct / −1 wrong**. An overall countdown timer (1 min/question) auto-ends the exam when it hits zero. Results screen shows marks, score, accuracy %, and time taken.
 
 Both modes use the same Gemini Live WebSocket stack and VoiceOrb component. The dashboard at `/dashboard` shows both past train sessions and exam sessions, with a Train/Exam mode card selector.
 
@@ -43,7 +43,7 @@ Both modes use the same Gemini Live WebSocket stack and VoiceOrb component. The 
 ```
 Browser → POST /api/token            → Clerk auth check, returns GEMINI_API_KEY
 Browser → WebSocket (direct)         → wss://generativelanguage.googleapis.com (Gemini Live)
-Browser → POST /api/session/save     → Neon (transcript + metadata + type + score)
+Browser → POST /api/session/save     → Neon (transcript + metadata + type + score + plan limit check)
 Browser → GET  /api/session/transcript?sessionId=xxx → returns PDF download
 ```
 
@@ -52,34 +52,93 @@ The WebSocket connects **browser-direct** to Google — Vercel never proxies aud
 ### Key files
 | File | Role |
 |------|------|
-| `src/app/session/page.tsx` | Train mode — voice session UI, WebSocket, AudioWorklet, transcript, orb |
-| `src/app/exam/page.tsx` | Exam mode — MCQ voice exam, question counter, score tracking, results screen |
-| `src/app/dashboard/page.tsx` | Server Component — fetches sessions from Neon, shapes `SessionRow[]` |
-| `src/app/dashboard/DashboardClient.tsx` | Client UI — Train/Exam mode cards, session list with type/score badges |
+| `src/app/page.tsx` | Landing page (client component) — navbar with plan badge, hero, features, how it works, pricing (3 tiers), footer CTA |
+| `src/app/session/page.tsx` | Train mode — voice session UI, WebSocket, AudioWorklet, transcript, orb, plan-based restrictions |
+| `src/app/exam/page.tsx` | Exam mode — MCQ voice exam, question counter, score tracking, results screen, plan-based restrictions |
+| `src/app/dashboard/page.tsx` | Server Component — fetches sessions from Neon, syncs plan from Clerk, shapes `SessionRow[]`, limits history for free plan |
+| `src/app/dashboard/DashboardClient.tsx` | Client UI — nav with plan badge + UserButton, session list with type/score badges, upgrade nudge for free users |
 | `src/app/api/token/route.ts` | Returns `GEMINI_API_KEY` to authenticated users |
-| `src/app/api/session/save/route.ts` | Saves transcript + metadata + type + score to Neon |
+| `src/app/api/session/save/route.ts` | Saves transcript + metadata; enforces monthly session limit per plan before inserting; syncs plan to DB |
 | `src/app/api/session/transcript/route.ts` | Returns session transcript as PDF download |
 | `src/app/api/auth/sync/route.ts` | Upserts Clerk user into Neon `users` table |
-| `src/db/schema.ts` | Drizzle schema: `users`, `sessions` (with `type`/`score` columns), `reports` (unused) |
+| `src/lib/plans.ts` | **Single source of truth** for plan limits, badges, and `getPlanFromHas()` helper |
+| `src/db/schema.ts` | Drizzle schema: `users` (with `plan` column), `sessions` (with `type`/`score`), `reports` (unused) |
 | `src/lib/audioQueue.ts` | Gapless PCM16 playback via scheduled AudioBufferSourceNodes |
 | `public/worklets/capture-processor.js` | AudioWorklet: Float32 → Int16 mic capture |
 | `src/middleware.ts` | Clerk route protection — MUST be at `src/`, not project root |
 | `src/components/VoiceOrb.tsx` | Animated orb: `'lg' \| 'md' \| 'sm'` sizes |
 
-### Database schema — `sessions` table
+### Database schema
+**`users` table**
+| Column | Type | Notes |
+|--------|------|-------|
+| `id` | uuid | primary key |
+| `clerk_id` | varchar(255) | Clerk string ID — never uuid |
+| `email` | varchar(255) | |
+| `name` | varchar(255) | |
+| `plan` | varchar(20) | `'free'` (default), `'plus'`, `'pro'` — write-through cache from Clerk |
+| `created_at` | timestamp | |
+
+**`sessions` table**
 | Column | Type | Notes |
 |--------|------|-------|
 | `id` | uuid | primary key |
 | `user_id` | uuid | FK → users.id |
-| `subject` | varchar(255) | e.g. `"Physics — Class 10"` |
+| `subject` | varchar(255) | e.g. `"Physics — JEE"` |
 | `transcript` | text | JSON array of `{role, text}` entries |
 | `duration_secs` | integer | |
 | `started_at` | timestamp | |
 | `ended_at` | timestamp | |
 | `type` | varchar(20) | `'tutor'` (default) or `'exam'` |
-| `score` | text | JSON: `{correct, answered, total}` — exam only, null for tutor |
+| `score` | text | JSON: `{correct, answered, total, marks, maxMarks}` — exam only, null for tutor |
 
 When reading `type` from DB, always guard: `(r.type ?? 'tutor') as 'tutor' | 'exam'`.
+
+---
+
+## Plan System
+
+### Source of truth: `src/lib/plans.ts`
+```typescript
+type PlanKey = 'free' | 'plus' | 'pro'
+
+PLAN_LIMITS = {
+  free:  { sessionsPerMonth: 2, sessionMinutes: 10, dashboardHistory: 1,
+           tutorSubjects: ['Math','English','History'], examSubjects: ['Math','Chemistry'],
+           examMaxQuestions: 5, allowHardDifficulty: false },
+  plus:  { sessionsPerMonth: 30, sessionMinutes: 30, dashboardHistory: Infinity, ... },
+  pro:   { sessionsPerMonth: Infinity, sessionMinutes: Infinity, ... },
+}
+```
+
+### Lazy plan sync — no webhooks
+Every request that touches plan-gated features calls `getPlanFromHas(has)` via Clerk's `has({ plan: 'pro' })` and writes the result to `users.plan` if it changed. This means the DB is never stale by more than one request.
+
+**Server-side** (API routes, Server Components):
+```typescript
+const { has } = await auth();
+const plan = getPlanFromHas(has as (p: { plan: string }) => boolean);
+```
+
+**Client-side** (session/exam pages, landing page):
+```typescript
+const { has } = useAuth();
+const plan = getPlanFromHas(has as (p: { plan: string }) => boolean);
+```
+
+### Where plan is enforced
+| Restriction | Enforced in |
+|---|---|
+| Monthly session count | `POST /api/session/save` — returns `{ error: 'SESSION_LIMIT_REACHED' }` 403 |
+| Dashboard history limit | `src/app/dashboard/page.tsx` — slices rows before passing to client |
+| Tutor subject filter | `src/app/session/page.tsx` picking UI |
+| 10-min session auto-end | `src/app/session/page.tsx` timer effect |
+| Hard difficulty locked | `src/app/session/page.tsx` difficulty picker |
+| Exam subject filter | `src/app/exam/page.tsx` picking UI |
+| Exam question count locked to 5 | `src/app/exam/page.tsx` picking UI |
+
+### Plan badge
+`PLAN_BADGE` from `src/lib/plans.ts` drives the badge shown in both the landing page navbar and the dashboard navbar. Badge reads from Clerk session token synchronously via `useAuth().has()`.
 
 ---
 
@@ -87,9 +146,10 @@ When reading `type` from DB, always guard: `(r.type ?? 'tutor') as 'tutor' | 'ex
 
 ### Clerk
 - Version is **v7** — use `useAuth`, `useUser`, `auth()`. No `SignedIn`/`SignedOut` components (don't exist in v7).
-- `currentUser()` makes an extra server→Clerk round-trip that fails in local dev — avoid it in API routes. Use `auth()` only, and have the client send user data in the request body.
+- `currentUser()` makes an extra server→Clerk round-trip that fails in local dev — avoid it in API routes. Use `auth()` only.
 - Middleware MUST be at `src/middleware.ts`. Placing it at the project root silently breaks all Clerk auth.
 - Clerk IDs are strings like `user_xxxxxxx` — `clerk_id` is `varchar(255)`, NEVER uuid.
+- Plan slugs in Clerk Dashboard must exactly match: `'plus'`, `'pro'` (lowercase) — `has({ plan: 'pro' })` matches literally.
 
 ### Gemini Live API — working config (confirmed)
 ```typescript
@@ -133,70 +193,25 @@ The final `outputTranscription` chunk and `turnComplete` often arrive in the **s
 ```typescript
 onmessage: (msg: any) => {
   const sc = msg.serverContent;
-
-  // 1. interruption — bail early
   if (sc?.interrupted) { flush(); return; }
-
-  // 2. user speech transcript
-  if (sc?.inputTranscription?.text?.trim()) {
-    setTranscript(prev => [...prev, { role: 'user', text: sc.inputTranscription.text.trim() }]);
-  }
-
-  // 3. AI speech transcript — accumulate into buffer BEFORE commit
-  if (sc?.outputTranscription?.text?.trim()) {
-    aiBufferRef.current += ' ' + sc.outputTranscription.text.trim();
-    setLiveCaption({ role: 'ai', text: aiBufferRef.current });
-  }
-
-  // 4. audio parts
-  for (const part of sc?.modelTurn?.parts ?? []) {
-    if (part.inlineData?.data) queueAudio(part.inlineData.data);
-  }
-
-  // 5. turnComplete — commit LAST, after all content in this message is processed
-  if (sc?.turnComplete) {
-    if (aiBufferRef.current.trim()) {
-      setTranscript(prev => [...prev, { role: 'ai', text: aiBufferRef.current.trim() }]);
-      aiBufferRef.current = '';
-    }
-    setLiveCaption(null);
-  }
+  if (sc?.inputTranscription?.text?.trim()) { /* add user entry */ }
+  if (sc?.outputTranscription?.text?.trim()) { aiBufferRef.current += ' ' + ...; } // accumulate BEFORE commit
+  for (const part of sc?.modelTurn?.parts ?? []) { /* queue audio */ }
+  if (sc?.turnComplete) { /* commit aiBufferRef, clear */ }  // LAST
 },
 ```
 
 ### Gemini Live — greeting / session auto-start
-To make the AI speak immediately on session open (before user says anything):
-
-1. Add to system instruction: `"Begin the session IMMEDIATELY by greeting the student warmly. Do not wait for the student to speak first."`
-2. After `sessionRef.current = session`, send a trigger using **`sendRealtimeInput`** with text:
-
-```typescript
-session.sendRealtimeInput({
-  text: `Greet the student warmly. Let them know you're their ${levelLabel} ${subject} tutor...`,
-});
-```
-
-**Do NOT use `sendClientContent` for the greeting trigger.** Mixing `sendClientContent` and `sendRealtimeInput` in the same session causes immediate disconnect.
-
-### WebSocket message types
-| Type | When |
-|------|------|
-| `realtimeInput` | Streaming live mic audio chunks AND initial text trigger |
-| `clientContent` | Only for seeding initial history (do NOT mix with realtimeInput) |
-| `toolResponse` | Responding to model function calls |
-
-**Mixing `realtimeInput` and `clientContent` causes session disconnect.**
+Send trigger using **`sendRealtimeInput`** with text after `sessionRef.current = session`.
+**Do NOT use `sendClientContent`** — mixing `sendClientContent` and `sendRealtimeInput` in the same session causes immediate disconnect.
 
 ### Audio
 - Input: PCM16 at **16 kHz** mono. AudioWorklet converts Float32→Int16 in `public/worklets/capture-processor.js`.
 - Output: PCM16 at **24 kHz**. Decode via `AudioContext({ sampleRate: 24000 })`.
 - Two separate AudioContexts — do not share them.
 - Both AudioContexts must be created inside an `onClick` handler (not `useEffect`) — Chrome blocks autoplay.
-- Base64 encode mic chunks with: `btoa(String.fromCharCode(...new Uint8Array(buf)))` — the manual loop approach corrupts large chunks.
+- Base64 encode mic chunks with: `btoa(String.fromCharCode(...new Uint8Array(buf)))`.
 - AudioWorklet file MUST live in `public/` and be referenced as `/worklets/capture-processor.js` (absolute path).
-
-### Server events — loop through ALL parts
-A single `serverContent` event can contain audio + transcript simultaneously. Always loop through `modelTurn.parts` — never stop at the first part.
 
 ### SDK
 Use `@google/genai` (new unified SDK). `@google/generative-ai` is deprecated.
@@ -208,110 +223,83 @@ Use `@google/genai` (new unified SDK). `@google/generative-ai` is deprecated.
 ### Exam page state machine
 `picking → connecting → active → saving → results`
 
-The exam page uses several refs that shadow state to avoid stale closures inside `onmessage`:
-- `answeredCountRef`, `correctCountRef`, `durationRef` — shadow their state counterparts
-- `examDoneRef` — guards against double-completion (natural end + user "End Exam")
+The exam page uses refs that shadow state to avoid stale closures inside `onmessage`:
+- `answeredCountRef`, `correctCountRef`, `durationRef`, `marksRef`, `countdownRef` — shadow their state counterparts
+- `examDoneRef` — guards against double-completion
 - `subjectRef`, `levelRef`, `questionCountRef` — captured at exam start so `handleExamComplete` can read them after cleanup
-
-### Exam question counter
-Parse `"Question X of N"` from each committed AI turn to update `currentQuestion` state:
-```typescript
-function parseQuestionNumber(text: string): number | null {
-  const m = text.match(/Question\s+(\d+)\s+of\s+\d+/i);
-  return m ? parseInt(m[1], 10) : null;
-}
-```
+- `lastQuestionRef` — deduplicates `setCurrentQuestion` calls
 
 ### Exam scoring
-Parse AI feedback from the same turn that confirms an answer:
++4 correct / −1 wrong tracked via `marksRef`. Score JSON: `{ correct, answered, total, marks, maxMarks: total * 4 }`.
+
+### Countdown timer
+1 minute per question. The same `setInterval` increments `duration` and decrements `countdownRef.current`. When it hits 0, `handleEndExam()` fires — no message is sent to the AI.
+
+### Key parsing functions (in `src/app/exam/page.tsx`)
 ```typescript
-function parseResult(text: string): 'correct' | 'incorrect' | null {
-  if (/\bCorrect!\b/i.test(text)) return 'correct';
-  if (/\bIncorrect\b/i.test(text)) return 'incorrect';
-  return null;
-}
+parseQuestionNumber(text)  // matches "Question X of N" → X
+parseResult(text)          // matches \bCorrect!\b or \bIncorrect\b
+formatAiText(text)         // breaks options onto new lines for rendering
 ```
-The system prompt instructs the AI to say `"Correct!"` or `"Incorrect."` immediately after `"You selected Option X."`. Explanations are capped at 3–5 words.
+`formatAiText` second replace uses `'\n$1'` (NOT `'\nOption $2'` — only one capture group exists).
+Render with `whiteSpace: 'pre-line'`. Correct/Incorrect turns get green/red background.
 
 ### Exam completion detection
 ```typescript
 if (aiText.includes('Exam complete! You answered all')) {
-  setTimeout(() => handleExamComplete(), 400);
+  setTimeout(() => handleExamComplete(), 400); // 400ms lets last transcript entry commit
 }
 ```
-The 400ms delay lets the last transcript entry commit before cleanup runs.
-
-### Exam transcript formatting
-AI turns are reformatted before rendering to put each option on its own line:
-```typescript
-function formatAiText(text: string): string {
-  return text
-    .replace(/\s+(Question\s+\d+\s+of\s+\d+[.:)]?\s*)/gi, '\n\n$1')
-    .replace(/Option\s+([1-4])\s*[:.]?\s/g, '\nOption $1: ')
-    .trim();
-}
-```
-Render with `whiteSpace: 'pre-line'` on the bubble div. Correct/Incorrect turns get green/red background.
 
 ---
 
 ## VoiceOrb sizes
-- `'lg'` — orbPx=176, wrapper=510px (use on landing/picking/connecting screens)
-- `'md'` — orbPx=120, wrapper=348px (use in active session — leaves room for transcript)
-- `'sm'` — orbPx=72,  wrapper=209px (use in saving/small contexts)
-
-EQ bars (speaking animation) show for both `'lg'` and `'md'`. Only `'sm'` shows the mic icon for speaking.
+- `'lg'` — orbPx=176, wrapper=510px (landing/picking/connecting screens)
+- `'md'` — orbPx=120, wrapper=348px (active session — leaves room for transcript)
+- `'sm'` — orbPx=72, wrapper=209px (saving/small contexts)
 
 ---
 
 ## Transcript UI — active session layout
-The active session uses a **vertical layout**: orb section (flexShrink:0) on top, transcript panel (flex:1) below.
-
-Critical CSS to prevent transcript truncation on long conversations:
-```tsx
-{/* Transcript outer container */}
-<div style={{ flex: 1, minHeight: 0, overflow: 'hidden', display: 'flex', flexDirection: 'column' }}>
-  {/* Scrollable messages */}
-  <div style={{ flex: 1, minHeight: 0, overflowY: 'auto' }}>
-    {messages}
-  </div>
-</div>
-```
-Both `flex: 1` containers need `minHeight: 0` — without it, flex children don't scroll (they grow past their container instead).
+Vertical layout: orb section (`flexShrink:0`) on top, transcript panel (`flex:1`) below.
+Both `flex:1` containers need `minHeight:0` — without it, flex children grow past their container instead of scrolling.
 
 ---
 
 ## Design System
 
-All UI uses inline styles (no Tailwind classes for layout). Two color themes:
+All UI uses **inline styles** (no Tailwind classes for layout). Two color themes:
 
 ### Train mode (coral/warm)
-| Purpose | Hex |
-|---------|-----|
+| Purpose | Value |
+|---------|-------|
 | Page background | `#FFFBF7` |
 | Card surface | `#FFF8F3` |
 | Headings | `#4A1B0C` |
 | Body text | `#993C1D` |
-| Primary / CTA gradient | `#D85A30 → #EF9F27` (`.cta-btn` class) |
-| Button text | `#FFFBF7` |
+| Primary CTA | `.cta-btn` — `linear-gradient(135deg, #D85A30, #EF9F27)` |
 | Student bubble | `#7F77DD` / `#EEEDFE` |
 | Tutor bubble | `#F0997B` / `#FFF3EC` |
 
 ### Exam mode (indigo/cool)
-| Purpose | Hex |
-|---------|-----|
+| Purpose | Value |
+|---------|-------|
 | Page background | `#EDF2FF` |
 | Primary | `#3B5BDB` / `#4C6EF5` |
 | Headings | `#1E3A8A` |
-| Body text | `#3B5BDB` |
-| CTA gradient | `#3B5BDB → #4C6EF5` |
-| AI bubble | `#EEF2FF` / `#1E3A8A` |
 | Correct feedback | `#DCFCE7` / `#15803D` |
 | Incorrect feedback | `#FEE2E2` / `#DC2626` |
 
+### Plan badges
+| Plan | Bg | Color |
+|------|----|-------|
+| Free | `#F0EDF9` | `#6B5DB0` |
+| Plus | `#E0F5EE` | `#1D9E75` |
+| Pro | `linear-gradient(135deg,#D85A30,#EF9F27)` | `#FFFBF7` |
+
 Logo Cloudinary URL: `https://res.cloudinary.com/dkqbzwicr/image/upload/q_auto/f_auto/v1776668144/logotutortalk_ecmdbm.png`
 
-VoiceOrb states: `idle` (breathe) → `listening` (teal rings) → `speaking` (coral rings + EQ bars) → `interrupted` (amber flash). Defined in `src/components/VoiceOrb.tsx`.
+Navbar on landing page: sticky glass effect via `.tt-nav-sticky` (globals.css) — `border: none` is required to override Tailwind base layer's `border-border` rule that would otherwise show a dividing line.
 
 ---
 
@@ -319,18 +307,18 @@ VoiceOrb states: `idle` (breathe) → `listening` (teal rings) → `speaking` (c
 
 | Symptom | Cause | Fix |
 |---------|-------|-----|
-| 1007 on session start | Unknown field in setup `generationConfig` | Check for `thinkingConfig`, snake_case tool keys |
-| Session disconnect after greeting | `sendClientContent` mixed with `sendRealtimeInput` | Use only `sendRealtimeInput({ text })` for greeting trigger |
-| AI transcript entries empty in download | Final `outputTranscription` chunk arrives same message as `turnComplete`; turnComplete ran first | Process `outputTranscription` before `turnComplete` in `onmessage` |
-| No transcript for first AI turn (greeting) | `sendRealtimeInput({ text })` response doesn't populate transcript | Fixed by correct `sc.outputTranscription.text` path + correct message order |
-| Transcript reading from wrong path | Used `msg.inputAudioTranscription` (top-level, wrong) | Read from `msg.serverContent.inputTranscription.text` |
+| 1007 on session start | Unknown field in `generationConfig` | Check for `thinkingConfig`, snake_case tool keys |
+| Session disconnect after greeting | `sendClientContent` mixed with `sendRealtimeInput` | Use only `sendRealtimeInput({ text })` |
+| AI transcript entries empty in download | Final `outputTranscription` arrives same message as `turnComplete`; processed too late | Process `outputTranscription` before `turnComplete` |
+| Transcript reading from wrong path | Used `msg.inputAudioTranscription` (top-level) | Read from `msg.serverContent.inputTranscription.text` |
 | `clerkMiddleware() was not run` | `middleware.ts` at project root | Move to `src/middleware.ts` |
-| Users table empty after sign-up | Sync only ran on dashboard visit | `useEffect` in `page.tsx` fires `POST /api/auth/sync` on `isSignedIn && user` |
+| Plan not updating after upgrade | `has()` reads stale session token | Token refreshes on next page load; DB syncs on next `auth()` call |
+| Session limit not enforced | `users.plan` out of date | `POST /api/session/save` re-syncs plan before counting |
 | AI doesn't respond to voice | `clientContent` used instead of `realtimeInput` | Switch to `realtimeInput` for all mic audio |
 | AudioContext blocked silently | Created in `useEffect` | Move to `onClick` handler |
-| Garbled audio | Float32 sent instead of Int16 | Verify worklet outputs `Int16Array` |
-| Transcript truncated / won't scroll | `flex: 1` container missing `minHeight: 0` | Add `minHeight: 0` to both the outer and inner transcript flex containers |
-| Exam scores all zero | `correctCountRef.current` read before `onmessage` updates it | Always read refs inside the `onmessage` callback, not in stale closures |
-| Q counter stuck at 1 | Parsing `answeredCount` instead of question number from AI text | Use `parseQuestionNumber()` on committed AI turn text |
-| Exam completes twice | `handleExamComplete` called by both AI phrase and "End Exam" button | Guard with `examDoneRef.current` check at top of both handlers |
-| `type` column null for old sessions | Column added with `DEFAULT 'tutor'` but existing rows stored NULL | Guard: `(r.type ?? 'tutor') as 'tutor' \| 'exam'` in dashboard map |
+| Transcript truncated / won't scroll | `flex:1` container missing `minHeight:0` | Add `minHeight:0` to both outer and inner transcript flex containers |
+| Exam scores all zero | Ref read before `onmessage` updates it | Read refs inside the `onmessage` callback only |
+| Exam completes twice | `handleExamComplete` called by AI phrase and "End Exam" button | Guard with `examDoneRef.current` |
+| `type` column null for old sessions | Existing rows stored NULL before default added | Guard: `(r.type ?? 'tutor') as 'tutor' \| 'exam'` |
+| Literal `$2` in option text | `formatAiText` regex used `'\nOption $2'` with one capture group | Use `'\n$1'` |
+| Navbar dividing line visible | Tailwind base `* { border-border }` adds border-color to `<nav>` | `.tt-nav-sticky` must have `border: none` |
