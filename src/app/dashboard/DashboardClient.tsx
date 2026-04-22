@@ -51,12 +51,14 @@ type Props = {
   topicsCovered: number;
   plan: PlanKey;
   sessionsLeft: number | null;
+  examsLeft: number | null;
 };
 
-export default function DashboardClient({ firstName, sessions, totalSessions, totalMinutes, topicsCovered, plan, sessionsLeft }: Props) {
+export default function DashboardClient({ firstName, sessions, totalSessions, totalMinutes, topicsCovered, plan, sessionsLeft, examsLeft }: Props) {
   const badge = PLAN_BADGE[plan];
   const hour = new Date().getHours();
   const [showLimitMsg, setShowLimitMsg] = useState(false);
+  const [showExamLimitMsg, setShowExamLimitMsg] = useState(false);
   const greeting = hour < 12 ? 'Good morning' : hour < 17 ? 'Good afternoon' : 'Good evening';
 
   const METRICS = [
@@ -315,6 +317,35 @@ export default function DashboardClient({ firstName, sessions, totalSessions, to
           </div>
         )}
 
+        {/* ── Exam limit reached popup ── */}
+        {showExamLimitMsg && (
+          <div style={{
+            position: 'fixed', top: 80, left: '50%', transform: 'translateX(-50%)',
+            zIndex: 100, width: 'min(460px, 90vw)',
+            background: 'linear-gradient(135deg, #EDF2FF, #E0E7FF)',
+            border: '1.5px solid rgba(59,91,219,0.22)',
+            borderRadius: 20, padding: '22px 24px',
+            boxShadow: '0 8px 40px rgba(59,91,219,0.18)',
+            animation: 'fadeUp .3s ease',
+          }}>
+            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', marginBottom: 10 }}>
+              <div style={{ display: 'flex', gap: 12, alignItems: 'center' }}>
+                <span style={{ fontSize: 26 }}>📝</span>
+                <p style={{ fontWeight: 700, color: '#1E3A8A', fontSize: 15, fontFamily: 'var(--font-poppins)' }}>
+                  Free exam used for this month
+                </p>
+              </div>
+              <button onClick={() => setShowExamLimitMsg(false)} style={{ background: 'none', border: 'none', cursor: 'pointer', color: '#3B5BDB', fontSize: 18, lineHeight: 1, opacity: 0.5, padding: '0 4px' }}>✕</button>
+            </div>
+            <p style={{ color: '#3B5BDB', fontSize: 13.5, lineHeight: 1.65, marginBottom: 16, opacity: 0.85 }}>
+              You&apos;ve used your 1 free exam this month. Upgrade to <strong>Plus</strong> for 30 exams/month or <strong>Pro</strong> for unlimited.
+            </p>
+            <a href="/#pricing" style={{ display: 'inline-block', background: 'linear-gradient(135deg,#3B5BDB,#4C6EF5)', color: '#FFFFFF', padding: '10px 24px', borderRadius: 99, textDecoration: 'none', fontWeight: 700, fontSize: 13, fontFamily: 'var(--font-poppins)' }}>
+              View plans →
+            </a>
+          </div>
+        )}
+
         <div className="tt-section" style={{ position: 'relative', zIndex: 10, maxWidth: 940, margin: '0 auto', paddingTop: 52, paddingBottom: 80 }}>
 
           {/* ── Greeting ── */}
@@ -468,6 +499,31 @@ export default function DashboardClient({ firstName, sessions, totalSessions, to
             )}
 
             {/* Exam card */}
+            {plan === 'free' && examsLeft === 0 ? (
+              <div style={{ cursor: 'not-allowed' }} onClick={() => setShowExamLimitMsg(v => !v)}>
+                <div style={{
+                  borderRadius: 22, padding: '28px 26px',
+                  background: 'linear-gradient(135deg, #EDF2FF 0%, #E0E7FF 100%)',
+                  border: '1.5px solid rgba(59,91,219,0.14)',
+                  boxShadow: '0 4px 24px rgba(59,91,219,0.10)',
+                  cursor: 'not-allowed', position: 'relative', overflow: 'hidden',
+                  animation: 'fadeUp .6s .35s ease backwards',
+                  opacity: 0.55,
+                }}>
+                  <div style={{ fontSize: 34, marginBottom: 10 }}>📝</div>
+                  <div style={{ fontSize: 18, fontWeight: 800, color: '#1E3A8A', fontFamily: 'var(--font-poppins)', marginBottom: 6 }}>Exam</div>
+                  <div style={{ fontSize: 13.5, color: '#3B5BDB', opacity: 0.8, marginBottom: 20 }}>Test yourself with MCQ exams</div>
+                  <div style={{
+                    display: 'inline-block',
+                    background: 'linear-gradient(135deg, #3B5BDB, #4C6EF5)',
+                    color: '#FFFBF7', padding: '8px 22px', borderRadius: 99,
+                    fontWeight: 700, fontSize: 13, fontFamily: 'var(--font-poppins)',
+                  }}>
+                    Take exam →
+                  </div>
+                </div>
+              </div>
+            ) : (
             <Link href="/exam" style={{ textDecoration: 'none' }}>
               <div
                 style={{
@@ -495,6 +551,7 @@ export default function DashboardClient({ firstName, sessions, totalSessions, to
                 </div>
               </div>
             </Link>
+            )}
           </div>
 
           {/* ── Sessions list ── */}

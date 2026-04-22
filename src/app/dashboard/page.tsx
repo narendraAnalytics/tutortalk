@@ -81,15 +81,26 @@ export default async function DashboardPage() {
   const totalMinutes   = Math.round(allSessionData.reduce((s, r) => s + r.durationSecs, 0) / 60);
   const topicsCovered  = new Set(allSessionData.map(s => s.subject)).size;
 
+  const monthStart = new Date(new Date().getFullYear(), new Date().getMonth(), 1);
+
   // Sessions left this month (free plan only)
   let sessionsLeft: number | null = null;
   if (plan === 'free' && limits.sessionsPerMonth !== Infinity) {
-    const monthStart = new Date(new Date().getFullYear(), new Date().getMonth(), 1);
     const usedThisMonth = rows.filter(r =>
       (r.type ?? 'tutor') === 'tutor' &&
       r.startedAt != null && new Date(r.startedAt) >= monthStart
     ).length;
     sessionsLeft = Math.max(0, limits.sessionsPerMonth - usedThisMonth);
+  }
+
+  // Exams left this month (free plan only)
+  let examsLeft: number | null = null;
+  if (plan === 'free' && limits.examsPerMonth !== Infinity) {
+    const examsUsed = rows.filter(r =>
+      r.type === 'exam' &&
+      r.startedAt != null && new Date(r.startedAt) >= monthStart
+    ).length;
+    examsLeft = Math.max(0, limits.examsPerMonth - examsUsed);
   }
 
   const firstName = user.firstName ?? email.split('@')[0] ?? 'there';
@@ -103,6 +114,7 @@ export default async function DashboardPage() {
       topicsCovered={topicsCovered}
       plan={plan as PlanKey}
       sessionsLeft={sessionsLeft}
+      examsLeft={examsLeft}
     />
   );
 }
