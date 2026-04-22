@@ -200,7 +200,7 @@ export default function SessionPage() {
       timerRef.current = setInterval(() => {
         setDuration(d => {
           const next = d + 1;
-          if (isFree && limits.sessionMinutes !== Infinity) {
+          if (limits.sessionMinutes !== Infinity) {
             const maxSecs = limits.sessionMinutes * 60;
             if (next >= maxSecs - 60 && next < maxSecs) setFreeTimeWarning(true);
             if (next >= maxSecs) handleTimeUp();
@@ -627,13 +627,16 @@ export default function SessionPage() {
         }}>
           <div style={{ fontSize: 52, marginBottom: 16 }}>⏰</div>
           <h2 style={{ fontSize: 24, fontWeight: 800, color: '#4A1B0C', fontFamily: 'var(--font-poppins)', marginBottom: 10, letterSpacing: '-0.4px' }}>
-            Your free session has ended
+            {isFree ? 'Your free session has ended' : 'Session time limit reached'}
           </h2>
           <p style={{ color: '#993C1D', fontSize: 15, lineHeight: 1.7, marginBottom: 8, opacity: 0.85 }}>
-            Free plan sessions are limited to <strong>{limits.sessionMinutes} minutes</strong>. Your session has been saved.
+            {isFree ? 'Free plan' : 'Plus plan'} sessions are limited to <strong>{limits.sessionMinutes} minutes</strong>. Your session has been saved.
           </p>
           <p style={{ color: '#993C1D', fontSize: 14, lineHeight: 1.6, marginBottom: 32, opacity: 0.7 }}>
-            Upgrade to <strong>Plus</strong> for 30-min sessions or <strong>Pro</strong> for unlimited time — never get cut off mid-lesson.
+            {isFree
+              ? <>Upgrade to <strong>Plus</strong> for 30-min sessions or <strong>Pro</strong> for unlimited time — never get cut off mid-lesson.</>
+              : <>Upgrade to <strong>Pro</strong> for unlimited session time — never get cut off mid-lesson.</>
+            }
           </p>
           <div style={{ display: 'flex', flexDirection: 'column', gap: 12, alignItems: 'center' }}>
             <a href="/#pricing" style={{
@@ -683,8 +686,8 @@ export default function SessionPage() {
           </div>
         </div>
         <div className="tt-session-topbar-right">
-          {/* Free plan time remaining */}
-          {isFree && limits.sessionMinutes !== Infinity && (
+          {/* Time remaining */}
+          {limits.sessionMinutes !== Infinity && (
             <span style={{
               fontSize: 12, fontWeight: 700, fontFamily: 'var(--font-poppins)',
               padding: '4px 12px', borderRadius: 99,
