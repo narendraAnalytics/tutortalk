@@ -152,8 +152,8 @@ export default function LandingPage() {
               }}>
                 {badge.label}
               </span>
-              <Link href="/session" className="cta-btn" style={{ color: '#FFFBF7', padding: '10px 24px', borderRadius: 99, textDecoration: 'none', fontWeight: 700, fontSize: 14, fontFamily: 'var(--font-poppins)' }}>
-                New session
+              <Link href="/dashboard" style={{ color: '#993C1D', padding: '10px 24px', borderRadius: 99, textDecoration: 'none', fontWeight: 700, fontSize: 14, fontFamily: 'var(--font-poppins)', border: '1.5px solid rgba(216,90,48,0.2)' }}>
+                Dashboard
               </Link>
               <UserButton />
             </>
