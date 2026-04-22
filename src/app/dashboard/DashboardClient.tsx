@@ -1,6 +1,7 @@
 'use client';
 
 import Link from 'next/link';
+import { useState } from 'react';
 import { UserButton } from '@clerk/nextjs';
 import type { SessionRow } from './page';
 import { PLAN_BADGE, type PlanKey } from '@/lib/plans';
@@ -49,11 +50,13 @@ type Props = {
   totalMinutes: number;
   topicsCovered: number;
   plan: PlanKey;
+  sessionsLeft: number | null;
 };
 
-export default function DashboardClient({ firstName, sessions, totalSessions, totalMinutes, topicsCovered, plan }: Props) {
+export default function DashboardClient({ firstName, sessions, totalSessions, totalMinutes, topicsCovered, plan, sessionsLeft }: Props) {
   const badge = PLAN_BADGE[plan];
   const hour = new Date().getHours();
+  const [showLimitMsg, setShowLimitMsg] = useState(false);
   const greeting = hour < 12 ? 'Good morning' : hour < 17 ? 'Good afternoon' : 'Good evening';
 
   const METRICS = [
@@ -263,15 +266,54 @@ export default function DashboardClient({ firstName, sessions, totalSessions, to
             }}>
               {badge.label}
             </span>
-            <Link href="/session" className="cta-btn" style={{ color: '#FFFBF7', padding: '10px 26px', borderRadius: 99, textDecoration: 'none', fontWeight: 700, fontSize: 14, fontFamily: 'var(--font-poppins)' }}>
-              + New session
-            </Link>
+            {plan === 'free' && sessionsLeft === 0 ? (
+              <button
+                onClick={() => setShowLimitMsg(v => !v)}
+                className="cta-btn"
+                style={{ color: '#FFFBF7', padding: '10px 26px', borderRadius: 99, border: 'none', fontWeight: 700, fontSize: 14, fontFamily: 'var(--font-poppins)', cursor: 'pointer', opacity: 0.65 }}
+              >
+                + New session
+              </button>
+            ) : (
+              <Link href="/session" className="cta-btn" style={{ color: '#FFFBF7', padding: '10px 26px', borderRadius: 99, textDecoration: 'none', fontWeight: 700, fontSize: 14, fontFamily: 'var(--font-poppins)' }}>
+                + New session
+              </Link>
+            )}
             <UserButton />
           </div>
         </div>
 
         {/* ── Animated line accent ── */}
         <div className="line-accent" style={{ position: 'relative', zIndex: 10 }} />
+
+        {/* ── Free plan limit reached toast ── */}
+        {showLimitMsg && (
+          <div style={{
+            position: 'fixed', top: 80, left: '50%', transform: 'translateX(-50%)',
+            zIndex: 100, width: 'min(460px, 90vw)',
+            background: 'linear-gradient(135deg, #FFF4EE, #FFF8F3)',
+            border: '1.5px solid rgba(216,90,48,0.22)',
+            borderRadius: 20, padding: '22px 24px',
+            boxShadow: '0 8px 40px rgba(216,90,48,0.18)',
+            animation: 'fadeUp .3s ease',
+          }}>
+            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', marginBottom: 10 }}>
+              <div style={{ display: 'flex', gap: 12, alignItems: 'center' }}>
+                <span style={{ fontSize: 26 }}>📅</span>
+                <p style={{ fontWeight: 700, color: '#4A1B0C', fontSize: 15, fontFamily: 'var(--font-poppins)' }}>
+                  Free plan sessions used up
+                </p>
+              </div>
+              <button onClick={() => setShowLimitMsg(false)} style={{ background: 'none', border: 'none', cursor: 'pointer', color: '#993C1D', fontSize: 18, lineHeight: 1, opacity: 0.5, padding: '0 4px' }}>✕</button>
+            </div>
+            <p style={{ color: '#993C1D', fontSize: 13.5, lineHeight: 1.65, marginBottom: 16, opacity: 0.85 }}>
+              You&apos;ve used all your free sessions this month. Upgrade to <strong>Plus</strong> for 30 sessions/month or <strong>Pro</strong> for unlimited.
+            </p>
+            <a href="/#pricing" className="cta-btn" style={{ display: 'inline-block', color: '#FFFBF7', padding: '10px 24px', borderRadius: 99, textDecoration: 'none', fontWeight: 700, fontSize: 13, fontFamily: 'var(--font-poppins)' }}>
+              View plans →
+            </a>
+          </div>
+        )}
 
         <div className="tt-section" style={{ position: 'relative', zIndex: 10, maxWidth: 940, margin: '0 auto', paddingTop: 52, paddingBottom: 80 }}>
 
@@ -309,7 +351,10 @@ export default function DashboardClient({ firstName, sessions, totalSessions, to
                     You&apos;re on the Free plan
                   </p>
                   <p style={{ color: '#993C1D', fontSize: 13, opacity: 0.8 }}>
-                    2 sessions/month · 3 subjects · 10-min limit · 1 session visible
+                    {sessionsLeft !== null
+                      ? `${sessionsLeft} session${sessionsLeft !== 1 ? 's' : ''} left this month`
+                      : '2 sessions/month'
+                    } · 3 subjects · 5-min limit · 1 session visible
                   </p>
                 </div>
               </div>
@@ -569,22 +614,35 @@ export default function DashboardClient({ firstName, sessions, totalSessions, to
                 Pick a subject and let TutorTalk guide you.
               </div>
             </div>
-            <Link
-              href="/session"
-              style={{
+            {plan === 'free' && sessionsLeft === 0 ? (
+              <a href="/#pricing" style={{
                 background: 'rgba(255,251,247,0.92)',
                 color: '#D85A30', padding: '14px 38px', borderRadius: 99,
                 textDecoration: 'none', fontWeight: 800, fontSize: 15,
                 fontFamily: 'var(--font-poppins)', flexShrink: 0,
                 display: 'inline-block', position: 'relative', zIndex: 1,
                 boxShadow: '0 4px 20px rgba(0,0,0,0.12)',
-                transition: 'transform .2s ease, box-shadow .2s ease',
-              }}
-              onMouseEnter={e => { (e.currentTarget as HTMLAnchorElement).style.transform = 'scale(1.06)'; (e.currentTarget as HTMLAnchorElement).style.boxShadow = '0 8px 32px rgba(0,0,0,0.18)'; }}
-              onMouseLeave={e => { (e.currentTarget as HTMLAnchorElement).style.transform = ''; (e.currentTarget as HTMLAnchorElement).style.boxShadow = '0 4px 20px rgba(0,0,0,0.12)'; }}
-            >
-              Start session →
-            </Link>
+              }}>
+                Upgrade for more sessions →
+              </a>
+            ) : (
+              <Link
+                href="/session"
+                style={{
+                  background: 'rgba(255,251,247,0.92)',
+                  color: '#D85A30', padding: '14px 38px', borderRadius: 99,
+                  textDecoration: 'none', fontWeight: 800, fontSize: 15,
+                  fontFamily: 'var(--font-poppins)', flexShrink: 0,
+                  display: 'inline-block', position: 'relative', zIndex: 1,
+                  boxShadow: '0 4px 20px rgba(0,0,0,0.12)',
+                  transition: 'transform .2s ease, box-shadow .2s ease',
+                }}
+                onMouseEnter={e => { (e.currentTarget as HTMLAnchorElement).style.transform = 'scale(1.06)'; (e.currentTarget as HTMLAnchorElement).style.boxShadow = '0 8px 32px rgba(0,0,0,0.18)'; }}
+                onMouseLeave={e => { (e.currentTarget as HTMLAnchorElement).style.transform = ''; (e.currentTarget as HTMLAnchorElement).style.boxShadow = '0 4px 20px rgba(0,0,0,0.12)'; }}
+              >
+                Start session →
+              </Link>
+            )}
           </div>
 
         </div>

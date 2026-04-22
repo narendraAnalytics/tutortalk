@@ -6,7 +6,7 @@ export const FREE_EXAM_SUBJECTS  = ['Math', 'Chemistry'];
 export const PLAN_LIMITS = {
   free: {
     sessionsPerMonth: 2,
-    sessionMinutes: 10,
+    sessionMinutes: 5,
     dashboardHistory: 1,
     tutorSubjects: FREE_TUTOR_SUBJECTS,
     examSubjects:  FREE_EXAM_SUBJECTS,

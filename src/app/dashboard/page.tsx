@@ -81,6 +81,17 @@ export default async function DashboardPage() {
   const totalMinutes   = Math.round(allSessionData.reduce((s, r) => s + r.durationSecs, 0) / 60);
   const topicsCovered  = new Set(allSessionData.map(s => s.subject)).size;
 
+  // Sessions left this month (free plan only)
+  let sessionsLeft: number | null = null;
+  if (plan === 'free' && limits.sessionsPerMonth !== Infinity) {
+    const monthStart = new Date(new Date().getFullYear(), new Date().getMonth(), 1);
+    const usedThisMonth = rows.filter(r =>
+      (r.type ?? 'tutor') === 'tutor' &&
+      r.startedAt != null && new Date(r.startedAt) >= monthStart
+    ).length;
+    sessionsLeft = Math.max(0, limits.sessionsPerMonth - usedThisMonth);
+  }
+
   const firstName = user.firstName ?? email.split('@')[0] ?? 'there';
 
   return (
@@ -91,6 +102,7 @@ export default async function DashboardPage() {
       totalMinutes={totalMinutes}
       topicsCovered={topicsCovered}
       plan={plan as PlanKey}
+      sessionsLeft={sessionsLeft}
     />
   );
 }

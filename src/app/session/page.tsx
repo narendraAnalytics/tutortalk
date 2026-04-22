@@ -9,7 +9,7 @@ import { AudioQueue } from '@/lib/audioQueue';
 import { GoogleGenAI, Modality } from '@google/genai';
 import { getPlanFromHas, PLAN_LIMITS, type PlanKey } from '@/lib/plans';
 
-type Phase = 'picking' | 'connecting' | 'active' | 'saving';
+type Phase = 'picking' | 'connecting' | 'active' | 'saving' | 'timeup';
 type OrbState = 'idle' | 'listening' | 'speaking' | 'interrupted';
 type Entry = { role: 'user' | 'ai'; text: string };
 type Difficulty = 'Easy' | 'Medium' | 'Hard';
@@ -193,7 +193,7 @@ export default function SessionPage() {
           if (isFree && limits.sessionMinutes !== Infinity) {
             const maxSecs = limits.sessionMinutes * 60;
             if (next >= maxSecs - 60 && next < maxSecs) setFreeTimeWarning(true);
-            if (next >= maxSecs) handleEndSession();
+            if (next >= maxSecs) handleTimeUp();
           }
           return next;
         });
@@ -305,7 +305,7 @@ export default function SessionPage() {
           },
           onclose: () => {
             if (!intentionalCloseRef.current) {
-              setError('Session disconnected. Please try again.');
+              setError('Connection ended unexpectedly — your progress is safe. You can start a new session.');
               setPhase('picking');
             }
           },
@@ -378,6 +378,23 @@ export default function SessionPage() {
       }
     } catch { /* navigate anyway */ }
     router.push('/dashboard');
+  }
+
+  async function handleTimeUp() {
+    cleanup();
+    try {
+      await fetch('/api/session/save', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          subject: `${subject}${topic.trim() ? ` — ${topic.trim()}` : ''}`,
+          transcript: transcriptRef.current,
+          durationSecs: duration,
+          startedAt: startedAtRef.current.toISOString(),
+        }),
+      });
+    } catch { /* show upgrade screen regardless */ }
+    setPhase('timeup');
   }
 
   const rawSubjects = level ? LEVEL_SUBJECTS[level] : [];
@@ -584,6 +601,49 @@ export default function SessionPage() {
     return (
       <div style={{ minHeight: '100vh', background: '#FFFBF7', display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', gap: 16 }}>
         <p style={{ color: '#993C1D', fontSize: 16, fontWeight: 600 }}>Saving your session…</p>
+      </div>
+    );
+  }
+
+  if (phase === 'timeup') {
+    return (
+      <div style={{ minHeight: '100vh', background: '#FFFBF7', display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', padding: '32px 24px' }}>
+        <div style={{
+          maxWidth: 460, width: '100%', textAlign: 'center',
+          background: 'linear-gradient(135deg, #FFF4EE, #FFF8F3)',
+          border: '1.5px solid rgba(216,90,48,0.18)',
+          borderRadius: 28, padding: '48px 36px',
+          boxShadow: '0 8px 40px rgba(216,90,48,0.10)',
+        }}>
+          <div style={{ fontSize: 52, marginBottom: 16 }}>⏰</div>
+          <h2 style={{ fontSize: 24, fontWeight: 800, color: '#4A1B0C', fontFamily: 'var(--font-poppins)', marginBottom: 10, letterSpacing: '-0.4px' }}>
+            Your free session has ended
+          </h2>
+          <p style={{ color: '#993C1D', fontSize: 15, lineHeight: 1.7, marginBottom: 8, opacity: 0.85 }}>
+            Free plan sessions are limited to <strong>{limits.sessionMinutes} minutes</strong>. Your session has been saved.
+          </p>
+          <p style={{ color: '#993C1D', fontSize: 14, lineHeight: 1.6, marginBottom: 32, opacity: 0.7 }}>
+            Upgrade to <strong>Plus</strong> for 30-min sessions or <strong>Pro</strong> for unlimited time — never get cut off mid-lesson.
+          </p>
+          <div style={{ display: 'flex', flexDirection: 'column', gap: 12, alignItems: 'center' }}>
+            <a href="/#pricing" style={{
+              display: 'block', width: '100%',
+              background: 'linear-gradient(135deg, #D85A30, #EF9F27)',
+              color: '#FFFBF7', padding: '14px 28px', borderRadius: 99,
+              textDecoration: 'none', fontWeight: 700, fontSize: 15,
+              fontFamily: 'var(--font-poppins)',
+              boxShadow: '0 4px 20px rgba(216,90,48,0.30)',
+            }}>
+              Upgrade for more time →
+            </a>
+            <Link href="/dashboard" style={{
+              color: '#993C1D', fontSize: 14, fontWeight: 600,
+              textDecoration: 'none', opacity: 0.7,
+            }}>
+              View my session on dashboard
+            </Link>
+          </div>
+        </div>
       </div>
     );
   }
