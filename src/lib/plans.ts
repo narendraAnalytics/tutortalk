@@ -11,6 +11,7 @@ export const PLAN_LIMITS = {
     tutorSubjects: FREE_TUTOR_SUBJECTS,
     examSubjects:  FREE_EXAM_SUBJECTS,
     examMaxQuestions: 5,
+    examsPerMonth: 1,
     allowHardDifficulty: false,
   },
   plus: {
@@ -20,6 +21,7 @@ export const PLAN_LIMITS = {
     tutorSubjects: null,
     examSubjects:  null,
     examMaxQuestions: null,
+    examsPerMonth: 30,
     allowHardDifficulty: true,
   },
   pro: {
@@ -29,6 +31,7 @@ export const PLAN_LIMITS = {
     tutorSubjects: null,
     examSubjects:  null,
     examMaxQuestions: null,
+    examsPerMonth: Infinity,
     allowHardDifficulty: true,
   },
 } as const;

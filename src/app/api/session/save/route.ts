@@ -23,9 +23,10 @@ export async function POST(req: NextRequest) {
     await db.update(users).set({ plan }).where(eq(users.clerkId, userId));
   }
 
-  // Enforce monthly tutor session limit for free/plus plans
+  const monthStart = new Date(new Date().getFullYear(), new Date().getMonth(), 1);
+
+  // Enforce monthly tutor session limit
   if ((type ?? 'tutor') === 'tutor' && limits.sessionsPerMonth !== Infinity) {
-    const monthStart = new Date(new Date().getFullYear(), new Date().getMonth(), 1);
     const [{ sessionCount }] = await db
       .select({ sessionCount: count() })
       .from(sessions)
@@ -36,6 +37,21 @@ export async function POST(req: NextRequest) {
       ));
     if (sessionCount >= limits.sessionsPerMonth) {
       return NextResponse.json({ error: 'SESSION_LIMIT_REACHED' }, { status: 403 });
+    }
+  }
+
+  // Enforce monthly exam limit
+  if (type === 'exam' && limits.examsPerMonth !== Infinity) {
+    const [{ examCount }] = await db
+      .select({ examCount: count() })
+      .from(sessions)
+      .where(and(
+        eq(sessions.userId, dbUser.id),
+        eq(sessions.type, 'exam'),
+        gte(sessions.startedAt, monthStart),
+      ));
+    if (examCount >= limits.examsPerMonth) {
+      return NextResponse.json({ error: 'EXAM_LIMIT_REACHED' }, { status: 403 });
     }
   }
 

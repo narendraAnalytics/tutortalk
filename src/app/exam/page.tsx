@@ -169,6 +169,18 @@ export default function ExamPage() {
   const [error, setError] = useState<string | null>(null);
   const [marks, setMarks] = useState(0);
   const [countdown, setCountdown] = useState(0);
+  const [examLimitReached, setExamLimitReached] = useState(false);
+  const [examsLeft, setExamsLeft] = useState<number | null>(null);
+
+  useEffect(() => {
+    if (isFree) {
+      fetch('/api/exam/status').then(r => r.json()).then(d => {
+        if (d.limitReached) setExamLimitReached(true);
+        if (d.examsLeft !== null) setExamsLeft(d.examsLeft);
+      }).catch(() => {});
+    }
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []);
 
   useEffect(() => { setSubject(null); }, [level]);
 
@@ -233,7 +245,7 @@ export default function ExamPage() {
       const subj = subjectRef.current ?? '';
       const lvl = levelRef.current ?? '';
       const levelLabel = EXAM_LEVELS.find(l => l.id === lvl)?.label ?? lvl;
-      await fetch('/api/session/save', {
+      const saveRes = await fetch('/api/session/save', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
@@ -251,6 +263,13 @@ export default function ExamPage() {
           }),
         }),
       });
+      if (saveRes.status === 403) {
+        const body = await saveRes.json();
+        if (body.error === 'EXAM_LIMIT_REACHED') {
+          setExamLimitReached(true);
+          setExamsLeft(0);
+        }
+      }
     } catch { /* navigate anyway */ }
     setPhase('results');
   }
@@ -797,13 +816,31 @@ export default function ExamPage() {
             Choose your level, subject, and number of questions to begin.
           </p>
 
+          {/* ── Exam limit reached banner ── */}
+          {examLimitReached && (
+            <div style={{ background: 'linear-gradient(135deg,#EDF2FF,#E0E7FF)', border: '1.5px solid rgba(59,91,219,0.2)', borderRadius: 18, padding: '22px 24px', marginBottom: 28, display: 'flex', gap: 16, alignItems: 'flex-start' }}>
+              <div style={{ fontSize: 28, flexShrink: 0 }}>📅</div>
+              <div style={{ flex: 1 }}>
+                <p style={{ fontWeight: 700, color: '#1E3A8A', fontSize: 15, marginBottom: 6, fontFamily: 'var(--font-poppins)' }}>
+                  Free exam used for this month
+                </p>
+                <p style={{ color: '#3B5BDB', fontSize: 13.5, lineHeight: 1.65, marginBottom: 14, opacity: 0.85 }}>
+                  Free plan includes <strong>1 exam per month</strong>. Upgrade to Plus for 30 exams/month or Pro for unlimited exams — never run out.
+                </p>
+                <a href="/#pricing" style={{ display: 'inline-block', background: 'linear-gradient(135deg,#3B5BDB,#4C6EF5)', color: '#FFFFFF', padding: '10px 22px', borderRadius: 99, textDecoration: 'none', fontWeight: 700, fontSize: 13, fontFamily: 'var(--font-poppins)' }}>
+                  View plans →
+                </a>
+              </div>
+            </div>
+          )}
+
           {/* ── Free plan info ── */}
-          {isFree && (
+          {isFree && !examLimitReached && (
             <div style={{ background: '#F0EDF9', border: '1.5px solid rgba(107,93,176,0.18)', borderRadius: 14, padding: '14px 18px', marginBottom: 28, display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: 12, flexWrap: 'wrap' }}>
               <div style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
                 <span style={{ fontSize: 16 }}>⚡</span>
                 <span style={{ color: '#6B5DB0', fontSize: 13, fontWeight: 600 }}>
-                  Free plan · Math &amp; Chemistry only · 5 questions max
+                  Free plan · Math &amp; Chemistry only · 5 questions max · {examsLeft !== null ? `${examsLeft} exam left this month` : '1 exam/month'}
                 </span>
               </div>
               <a href="/#pricing" style={{ color: '#6B5DB0', fontSize: 12, fontWeight: 700, textDecoration: 'none', borderBottom: '1.5px solid #6B5DB055', whiteSpace: 'nowrap' }}>
@@ -891,9 +928,20 @@ export default function ExamPage() {
             </div>
           )}
 
-          <button className="exam-cta-btn" onClick={handleStartExam} disabled={!level || !subject} style={{ width: '100%', padding: '16px', borderRadius: 16, color: '#FFFFFF', fontSize: 17, fontWeight: 800, fontFamily: 'var(--font-poppins)', letterSpacing: '-0.3px' }}>
-            Begin Exam →
-          </button>
+          {examLimitReached ? (
+            <div style={{ width: '100%', textAlign: 'center' }}>
+              <button disabled style={{ width: '100%', padding: '16px', borderRadius: 16, color: '#FFFFFF', fontSize: 17, fontWeight: 800, fontFamily: 'var(--font-poppins)', letterSpacing: '-0.3px', background: 'rgba(59,91,219,0.3)', cursor: 'not-allowed', border: 'none' }}>
+                Begin Exam — Limit Reached
+              </button>
+              <p style={{ marginTop: 12, color: '#3B5BDB', fontSize: 13, opacity: 0.7 }}>
+                Upgrade to <a href="/#pricing" style={{ color: '#3B5BDB', fontWeight: 700 }}>Plus or Pro</a> to take more exams this month.
+              </p>
+            </div>
+          ) : (
+            <button className="exam-cta-btn" onClick={handleStartExam} disabled={!level || !subject} style={{ width: '100%', padding: '16px', borderRadius: 16, color: '#FFFFFF', fontSize: 17, fontWeight: 800, fontFamily: 'var(--font-poppins)', letterSpacing: '-0.3px' }}>
+              Begin Exam →
+            </button>
+          )}
 
           <div style={{ marginTop: 24, background: 'rgba(255,255,255,0.7)', borderRadius: 14, padding: '14px 18px', border: '1.5px solid rgba(59,91,219,0.12)' }}>
             <p style={{ fontSize: 13, color: '#3B5BDB', opacity: 0.75, lineHeight: 1.6, margin: 0 }}>
