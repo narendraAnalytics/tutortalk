@@ -550,6 +550,34 @@ export default function ExamPage() {
             </p>
 
             <div style={{ display: 'flex', flexDirection: 'column', gap: 10 }}>
+              {examLimitReached && (
+                <div style={{
+                  background: 'linear-gradient(135deg, #EDE9FE, #EDF2FF)',
+                  border: '1.5px solid rgba(109,79,218,0.25)',
+                  borderRadius: 18,
+                  padding: '20px 24px',
+                  marginBottom: 4,
+                  textAlign: 'center',
+                }}>
+                  <div style={{ fontSize: 28, marginBottom: 8 }}>🎉</div>
+                  <p style={{ fontWeight: 800, fontSize: 15, color: '#3B2A8C', fontFamily: 'var(--font-poppins)', marginBottom: 6 }}>
+                    Free plan exam completed!
+                  </p>
+                  <p style={{ fontSize: 13, color: '#5B4DB0', lineHeight: 1.6, marginBottom: 14 }}>
+                    You&apos;ve used your <strong>1 free exam</strong> this month.<br/>
+                    Upgrade to <strong>Plus</strong> for 30 exams/month or <strong>Pro</strong> for unlimited.
+                  </p>
+                  <a href="/#pricing" style={{
+                    display: 'inline-block', textDecoration: 'none', color: '#FFFBF7',
+                    padding: '11px 28px', borderRadius: 99, fontWeight: 700, fontSize: 13.5,
+                    fontFamily: 'var(--font-poppins)',
+                    background: 'linear-gradient(135deg, #D85A30, #EF9F27)',
+                    boxShadow: '0 4px 16px rgba(216,90,48,0.3)',
+                  }}>
+                    Upgrade now →
+                  </a>
+                </div>
+              )}
               <Link href="/dashboard" style={{
                 display: 'block', textDecoration: 'none', color: '#FFFBF7',
                 padding: '14px 36px', borderRadius: 99, fontWeight: 700, fontSize: 15,
@@ -559,33 +587,35 @@ export default function ExamPage() {
               }}>
                 Back to Dashboard →
               </Link>
-              <button
-                onClick={() => {
-                  examDoneRef.current = false;
-                  correctCountRef.current = 0;
-                  answeredCountRef.current = 0;
-                  marksRef.current = 0;
-                  setCorrectCount(0);
-                  setAnsweredCount(0);
-                  setMarks(0);
-                  setCurrentQuestion(1);
-                  setDuration(0);
-                  durationRef.current = 0;
-                  lastQuestionRef.current = 0;
-                  countdownRef.current = 0;
-                  setCountdown(0);
-                  setTranscript([]);
-                  setPhase('picking');
-                }}
-                style={{
-                  background: 'transparent', border: '1.5px solid rgba(59,91,219,0.25)',
-                  color: '#3B5BDB', padding: '13px 36px', borderRadius: 99,
-                  fontWeight: 700, fontSize: 14, fontFamily: 'var(--font-poppins)',
-                  cursor: 'pointer',
-                }}
-              >
-                Take another exam
-              </button>
+              {!examLimitReached && (
+                <button
+                  onClick={() => {
+                    examDoneRef.current = false;
+                    correctCountRef.current = 0;
+                    answeredCountRef.current = 0;
+                    marksRef.current = 0;
+                    setCorrectCount(0);
+                    setAnsweredCount(0);
+                    setMarks(0);
+                    setCurrentQuestion(1);
+                    setDuration(0);
+                    durationRef.current = 0;
+                    lastQuestionRef.current = 0;
+                    countdownRef.current = 0;
+                    setCountdown(0);
+                    setTranscript([]);
+                    setPhase('picking');
+                  }}
+                  style={{
+                    background: 'transparent', border: '1.5px solid rgba(59,91,219,0.25)',
+                    color: '#3B5BDB', padding: '13px 36px', borderRadius: 99,
+                    fontWeight: 700, fontSize: 14, fontFamily: 'var(--font-poppins)',
+                    cursor: 'pointer',
+                  }}
+                >
+                  Take another exam
+                </button>
+              )}
             </div>
           </div>
         </div>
