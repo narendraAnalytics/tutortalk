@@ -411,33 +411,61 @@ export default function DashboardClient({ firstName, sessions, totalSessions, to
           {/* ── Mode cards ── */}
           <div style={{ display: 'grid', gridTemplateColumns: 'repeat(2, 1fr)', gap: 18, marginBottom: 48 }}>
             {/* Train card */}
-            <Link href="/session" style={{ textDecoration: 'none' }}>
-              <div
-                style={{
-                  borderRadius: 22, padding: '28px 26px',
-                  background: 'linear-gradient(135deg, #FAECE7 0%, #FDE8DE 100%)',
-                  border: '1.5px solid rgba(216,90,48,0.14)',
-                  boxShadow: '0 4px 24px rgba(216,90,48,0.10)',
-                  cursor: 'pointer', position: 'relative', overflow: 'hidden',
-                  transition: 'transform .22s ease, box-shadow .22s ease',
-                  animation: 'fadeUp .6s .25s ease backwards',
-                }}
-                onMouseEnter={e => { (e.currentTarget as HTMLDivElement).style.transform = 'translateY(-4px)'; (e.currentTarget as HTMLDivElement).style.boxShadow = '0 8px 36px rgba(216,90,48,0.18)'; }}
-                onMouseLeave={e => { (e.currentTarget as HTMLDivElement).style.transform = ''; (e.currentTarget as HTMLDivElement).style.boxShadow = '0 4px 24px rgba(216,90,48,0.10)'; }}
-              >
-                <div style={{ fontSize: 34, marginBottom: 10 }}>🎓</div>
-                <div style={{ fontSize: 18, fontWeight: 800, color: '#4A1B0C', fontFamily: 'var(--font-poppins)', marginBottom: 6 }}>Train</div>
-                <div style={{ fontSize: 13.5, color: '#993C1D', opacity: 0.75, marginBottom: 20 }}>Practice with your AI tutor</div>
-                <div style={{
-                  display: 'inline-block',
-                  background: 'linear-gradient(135deg, #D85A30, #EF9F27)',
-                  color: '#FFFBF7', padding: '8px 22px', borderRadius: 99,
-                  fontWeight: 700, fontSize: 13, fontFamily: 'var(--font-poppins)',
-                }}>
-                  Start training →
+            {plan === 'free' && sessionsLeft === 0 ? (
+              <div style={{ textDecoration: 'none', cursor: 'not-allowed' }} onClick={() => setShowLimitMsg(v => !v)}>
+                <div
+                  style={{
+                    borderRadius: 22, padding: '28px 26px',
+                    background: 'linear-gradient(135deg, #FAECE7 0%, #FDE8DE 100%)',
+                    border: '1.5px solid rgba(216,90,48,0.14)',
+                    boxShadow: '0 4px 24px rgba(216,90,48,0.10)',
+                    cursor: 'not-allowed', position: 'relative', overflow: 'hidden',
+                    animation: 'fadeUp .6s .25s ease backwards',
+                    opacity: 0.55,
+                  }}
+                >
+                  <div style={{ fontSize: 34, marginBottom: 10 }}>🎓</div>
+                  <div style={{ fontSize: 18, fontWeight: 800, color: '#4A1B0C', fontFamily: 'var(--font-poppins)', marginBottom: 6 }}>Train</div>
+                  <div style={{ fontSize: 13.5, color: '#993C1D', opacity: 0.75, marginBottom: 20 }}>Practice with your AI tutor</div>
+                  <div style={{
+                    display: 'inline-block',
+                    background: 'linear-gradient(135deg, #D85A30, #EF9F27)',
+                    color: '#FFFBF7', padding: '8px 22px', borderRadius: 99,
+                    fontWeight: 700, fontSize: 13, fontFamily: 'var(--font-poppins)',
+                  }}>
+                    Start training →
+                  </div>
                 </div>
               </div>
-            </Link>
+            ) : (
+              <Link href="/session" style={{ textDecoration: 'none' }}>
+                <div
+                  style={{
+                    borderRadius: 22, padding: '28px 26px',
+                    background: 'linear-gradient(135deg, #FAECE7 0%, #FDE8DE 100%)',
+                    border: '1.5px solid rgba(216,90,48,0.14)',
+                    boxShadow: '0 4px 24px rgba(216,90,48,0.10)',
+                    cursor: 'pointer', position: 'relative', overflow: 'hidden',
+                    transition: 'transform .22s ease, box-shadow .22s ease',
+                    animation: 'fadeUp .6s .25s ease backwards',
+                  }}
+                  onMouseEnter={e => { (e.currentTarget as HTMLDivElement).style.transform = 'translateY(-4px)'; (e.currentTarget as HTMLDivElement).style.boxShadow = '0 8px 36px rgba(216,90,48,0.18)'; }}
+                  onMouseLeave={e => { (e.currentTarget as HTMLDivElement).style.transform = ''; (e.currentTarget as HTMLDivElement).style.boxShadow = '0 4px 24px rgba(216,90,48,0.10)'; }}
+                >
+                  <div style={{ fontSize: 34, marginBottom: 10 }}>🎓</div>
+                  <div style={{ fontSize: 18, fontWeight: 800, color: '#4A1B0C', fontFamily: 'var(--font-poppins)', marginBottom: 6 }}>Train</div>
+                  <div style={{ fontSize: 13.5, color: '#993C1D', opacity: 0.75, marginBottom: 20 }}>Practice with your AI tutor</div>
+                  <div style={{
+                    display: 'inline-block',
+                    background: 'linear-gradient(135deg, #D85A30, #EF9F27)',
+                    color: '#FFFBF7', padding: '8px 22px', borderRadius: 99,
+                    fontWeight: 700, fontSize: 13, fontFamily: 'var(--font-poppins)',
+                  }}>
+                    Start training →
+                  </div>
+                </div>
+              </Link>
+            )}
 
             {/* Exam card */}
             <Link href="/exam" style={{ textDecoration: 'none' }}>

@@ -168,6 +168,16 @@ export default function SessionPage() {
   const [limitReached, setLimitReached] = useState(false); // monthly session limit hit
   const [freeTimeWarning, setFreeTimeWarning] = useState(false);
 
+  // Check session limit on mount for free plan
+  useEffect(() => {
+    if (isFree) {
+      fetch('/api/session/status').then(r => r.json()).then(d => {
+        if (d.limitReached) setLimitReached(true);
+      }).catch(() => {});
+    }
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []);
+
   // Reset subject when level changes
   useEffect(() => { setSubject(null); }, [level]);
 
