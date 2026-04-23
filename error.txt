@@ -1,3 +1,1 @@
-video 1 : https://res.cloudinary.com/dkqbzwicr/video/upload/q_auto/f_auto/v1776919480/video1_qsblo9.webm
-video 2 : https://res.cloudinary.com/dkqbzwicr/video/upload/q_auto/f_auto/v1776919472/video2_bqu7ob.webm
-video 3 : https://res.cloudinary.com/dkqbzwicr/video/upload/q_auto/f_auto/v1776919466/video3_el5iw0.webm
+feature 1 : https://res.cloudinary.com/dkqbzwicr/image/upload/q_auto/f_auto/v1776946908/Geminifeature1_g272wz.png

@@ -15,47 +15,131 @@ const SUBJECTS = [
   { name: 'History',   bg: '#F0EDF9', color: '#6B5DB0' },
 ];
 
-const FEATURES = [
+const FEATURE_SLIDES = [
   {
-    icon: (
-      <svg viewBox="0 0 36 36" width="30" height="30" fill="none">
-        <circle cx="18" cy="18" r="18" fill="#FAECE7" />
-        <rect x="14" y="10" width="8" height="12" rx="4" fill="#D85A30" />
-        <path d="M10 19c0 4.418 3.582 8 8 8s8-3.582 8-8" stroke="#D85A30" strokeWidth="2.2" strokeLinecap="round" />
-        <line x1="18" y1="27" x2="18" y2="30" stroke="#D85A30" strokeWidth="2.2" strokeLinecap="round" />
-      </svg>
-    ),
-    title: 'Speak naturally',
-    desc: 'Just talk like you would with a great teacher — no typing, no menus. Pure voice.',
+    num: '01',
+    badge: 'Train Mode',
+    title: 'Socratic Voice Tutor',
+    bullets: [
+      'Voice-driven AI tutor powered by Gemini Live',
+      'Guides you with questions — never hands over answers',
+      '5 study levels: Class 10 · Intermediate · JEE · NEET · UPSC',
+      'Live transcript + downloadable PDF after every session',
+    ],
+    image: 'https://res.cloudinary.com/dkqbzwicr/image/upload/q_auto/f_auto/v1776948047/feature1_hekepo.png',
+    accent: '#D85A30',
     bg: '#FAECE7',
-  },
-  {
     icon: (
-      <svg viewBox="0 0 36 36" width="30" height="30" fill="none">
-        <circle cx="18" cy="18" r="18" fill="#EEEDFE" />
-        <circle cx="18" cy="14" r="5" fill="#7F77DD" />
-        <path d="M18 19v4" stroke="#7F77DD" strokeWidth="2.2" strokeLinecap="round" />
-        <circle cx="18" cy="25" r="1.5" fill="#7F77DD" />
+      <svg viewBox="0 0 64 64" width="64" height="64" fill="none">
+        <rect x="14" y="22" width="20" height="28" rx="10" fill="#D85A30" opacity="0.18" />
+        <rect x="14" y="22" width="20" height="28" rx="10" stroke="#D85A30" strokeWidth="2.5" />
+        <path d="M10 38c0 9.4 7.6 17 17 17s17-7.6 17-17" stroke="#D85A30" strokeWidth="2.5" strokeLinecap="round" />
+        <line x1="24" y1="55" x2="24" y2="62" stroke="#D85A30" strokeWidth="2.5" strokeLinecap="round" />
+        <path d="M38 28 Q48 20 50 32 Q52 44 42 46" stroke="#EF9F27" strokeWidth="2" strokeLinecap="round" fill="none" />
+        <circle cx="43" cy="47" r="3" fill="#EF9F27" opacity="0.7" />
       </svg>
     ),
-    title: 'Socratic method',
-    desc: 'TutorTalk guides you to answers with questions — building real understanding, not shortcuts.',
-    bg: '#EEEDFE',
   },
   {
+    num: '02',
+    badge: 'Exam Mode',
+    title: 'Voice MCQ Exam Conductor',
+    bullets: [
+      'AI reads questions aloud; answer by voice',
+      'Instant spoken feedback with +4 / −1 competitive scoring',
+      '1 min/question countdown — auto-ends when time runs out',
+      'Results screen: marks, accuracy %, and time taken',
+    ],
+    image: 'https://res.cloudinary.com/dkqbzwicr/image/upload/q_auto/f_auto/v1776947938/feature2_e1uhhv.png',
+    accent: '#3B5BDB',
+    bg: '#E8EEFF',
     icon: (
-      <svg viewBox="0 0 36 36" width="30" height="30" fill="none">
-        <circle cx="18" cy="18" r="18" fill="#E0F5EE" />
-        <rect x="11" y="9" width="14" height="18" rx="3" fill="#1D9E75" opacity="0.3" />
-        <rect x="11" y="9" width="14" height="18" rx="3" stroke="#1D9E75" strokeWidth="1.8" />
-        <line x1="14" y1="14" x2="22" y2="14" stroke="#1D9E75" strokeWidth="1.6" strokeLinecap="round" />
-        <line x1="14" y1="18" x2="22" y2="18" stroke="#1D9E75" strokeWidth="1.6" strokeLinecap="round" />
-        <line x1="14" y1="22" x2="18" y2="22" stroke="#1D9E75" strokeWidth="1.6" strokeLinecap="round" />
+      <svg viewBox="0 0 64 64" width="64" height="64" fill="none">
+        <rect x="10" y="10" width="44" height="44" rx="10" fill="#3B5BDB" opacity="0.12" />
+        <rect x="10" y="10" width="44" height="44" rx="10" stroke="#3B5BDB" strokeWidth="2.2" />
+        <circle cx="32" cy="28" r="8" fill="#4C6EF5" opacity="0.25" />
+        <circle cx="32" cy="28" r="8" stroke="#3B5BDB" strokeWidth="2" />
+        <path d="M28 28 l3 3 l5-6" stroke="#3B5BDB" strokeWidth="2.2" strokeLinecap="round" strokeLinejoin="round" />
+        <line x1="18" y1="42" x2="46" y2="42" stroke="#3B5BDB" strokeWidth="2" strokeLinecap="round" />
+        <line x1="18" y1="48" x2="36" y2="48" stroke="#3B5BDB" strokeWidth="1.6" strokeLinecap="round" opacity="0.5" />
       </svg>
     ),
-    title: 'PDF session reports',
-    desc: 'Every session produces a full transcript and progress report — perfect for revision.',
+  },
+  {
+    num: '03',
+    badge: 'Dashboard',
+    title: 'Your Learning History',
+    bullets: [
+      'View all past Train and Exam sessions in one place',
+      'Session cards show subject, duration, type, and exam score',
+      'Aggregate metrics: total sessions, minutes, topics covered',
+      'Quota tracker: sessions and exams left this month',
+    ],
+    image: 'https://res.cloudinary.com/dkqbzwicr/image/upload/q_auto/f_auto/v1776948475/feature3_bgc9qi.png',
+    accent: '#1D9E75',
     bg: '#E0F5EE',
+    icon: (
+      <svg viewBox="0 0 64 64" width="64" height="64" fill="none">
+        <rect x="8" y="14" width="48" height="36" rx="8" fill="#1D9E75" opacity="0.12" />
+        <rect x="8" y="14" width="48" height="36" rx="8" stroke="#1D9E75" strokeWidth="2.2" />
+        <rect x="16" y="22" width="14" height="20" rx="4" fill="#1D9E75" opacity="0.3" />
+        <rect x="34" y="30" width="14" height="12" rx="4" fill="#1D9E75" opacity="0.3" />
+        <line x1="16" y1="22" x2="16" y2="42" stroke="#1D9E75" strokeWidth="2" strokeLinecap="round" />
+        <line x1="23" y1="22" x2="23" y2="42" stroke="#1D9E75" strokeWidth="2" strokeLinecap="round" />
+        <line x1="34" y1="30" x2="34" y2="42" stroke="#1D9E75" strokeWidth="2" strokeLinecap="round" />
+        <line x1="41" y1="30" x2="41" y2="42" stroke="#1D9E75" strokeWidth="2" strokeLinecap="round" />
+        <line x1="12" y1="42" x2="52" y2="42" stroke="#1D9E75" strokeWidth="2" strokeLinecap="round" />
+      </svg>
+    ),
+  },
+  {
+    num: '04',
+    badge: 'Smart Gating',
+    title: 'Plan-Based Access Control',
+    bullets: [
+      'Subjects, difficulty levels, and limits gated by plan',
+      'Visual locks on unavailable options — no hidden paywalls',
+      'Plan badge always visible in the navbar (Free / Plus / Pro)',
+      'Upgrade instantly — changes reflect in real time',
+    ],
+    image: 'https://res.cloudinary.com/dkqbzwicr/image/upload/q_auto/f_auto/v1776948700/feature4_wbpatl.png',
+    accent: '#6B5DB0',
+    bg: '#F0EDF9',
+    icon: (
+      <svg viewBox="0 0 64 64" width="64" height="64" fill="none">
+        <rect x="16" y="28" width="32" height="24" rx="7" fill="#6B5DB0" opacity="0.15" />
+        <rect x="16" y="28" width="32" height="24" rx="7" stroke="#6B5DB0" strokeWidth="2.2" />
+        <path d="M22 28 V22 a10 10 0 0 1 20 0 V28" stroke="#6B5DB0" strokeWidth="2.2" strokeLinecap="round" fill="none" />
+        <circle cx="32" cy="40" r="4" fill="#6B5DB0" opacity="0.5" />
+        <line x1="32" y1="44" x2="32" y2="47" stroke="#6B5DB0" strokeWidth="2" strokeLinecap="round" />
+      </svg>
+    ),
+  },
+  {
+    num: '05',
+    badge: 'Tech Stack',
+    title: 'Built on Modern Technology',
+    bullets: [
+      'Next.js 15 · React 19 · TypeScript · Neon PostgreSQL',
+      'Google Gemini 3.1 Flash Live API via browser-direct WebSocket',
+      'AudioWorklet PCM16 capture · AudioContext 24 kHz playback',
+      'Deployed on Vercel with Edge Functions + CDN',
+    ],
+    image: 'https://res.cloudinary.com/dkqbzwicr/image/upload/q_auto/f_auto/v1776948938/techstuff_fko6ad.png',
+    accent: '#C47A14',
+    bg: '#FEF3E2',
+    icon: (
+      <svg viewBox="0 0 64 64" width="64" height="64" fill="none">
+        <polygon points="32,8 56,20 56,44 32,56 8,44 8,20" fill="#C47A14" opacity="0.12" stroke="#C47A14" strokeWidth="2.2" strokeLinejoin="round" />
+        <circle cx="32" cy="32" r="8" fill="#C47A14" opacity="0.25" stroke="#C47A14" strokeWidth="2" />
+        <line x1="32" y1="8" x2="32" y2="24" stroke="#C47A14" strokeWidth="2" strokeLinecap="round" />
+        <line x1="32" y1="40" x2="32" y2="56" stroke="#C47A14" strokeWidth="2" strokeLinecap="round" />
+        <line x1="8" y1="20" x2="24" y2="28" stroke="#C47A14" strokeWidth="2" strokeLinecap="round" />
+        <line x1="40" y1="36" x2="56" y2="44" stroke="#C47A14" strokeWidth="2" strokeLinecap="round" />
+        <line x1="56" y1="20" x2="40" y2="28" stroke="#C47A14" strokeWidth="2" strokeLinecap="round" />
+        <line x1="24" y1="36" x2="8" y2="44" stroke="#C47A14" strokeWidth="2" strokeLinecap="round" />
+      </svg>
+    ),
   },
 ];
 
@@ -119,6 +203,17 @@ export default function LandingPage() {
       });
     }
   }, [isSignedIn, user]);
+
+  // ── Feature carousel ──
+  const [featIdx, setFeatIdx] = useState(0);
+  const [featAnim, setFeatAnim] = useState(false);
+  const goFeat = (next: number) => {
+    setFeatAnim(true);
+    setTimeout(() => {
+      setFeatIdx((next + FEATURE_SLIDES.length) % FEATURE_SLIDES.length);
+      setFeatAnim(false);
+    }, 180);
+  };
 
   // ── Video carousel ──
   const [activeVideo, setActiveVideo] = useState(0);
@@ -364,23 +459,110 @@ export default function LandingPage() {
         </div>
       </section>
 
-      {/* ── Features ── */}
+      {/* ── Features Carousel ── */}
       <section id="features" className="tt-section" style={{ paddingTop: 20, paddingBottom: 96 }}>
-        <h2 style={{ textAlign: 'center', fontSize: 'clamp(26px, 4vw, 40px)', fontWeight: 700, color: '#4A1B0C', marginBottom: 52, letterSpacing: '-1px', fontFamily: 'var(--font-poppins)' }}>Why TutorTalk works</h2>
-        <div className="tt-grid-3" style={{ maxWidth: 1020, margin: '0 auto' }}>
-          {FEATURES.map((f, i) => (
-            <div key={i}
-              style={{ background: '#FFF8F3', borderRadius: 20, padding: '36px 30px', boxShadow: '0 2px 24px rgba(216,90,48,0.07)', transition: 'transform 0.22s, box-shadow 0.22s', cursor: 'default' }}
-              onMouseEnter={e => { (e.currentTarget as HTMLDivElement).style.transform = 'translateY(-6px)'; (e.currentTarget as HTMLDivElement).style.boxShadow = '0 12px 48px rgba(216,90,48,0.13)'; }}
-              onMouseLeave={e => { (e.currentTarget as HTMLDivElement).style.transform = ''; (e.currentTarget as HTMLDivElement).style.boxShadow = '0 2px 24px rgba(216,90,48,0.07)'; }}
-            >
-              <div style={{ width: 58, height: 58, borderRadius: 16, background: f.bg, display: 'flex', alignItems: 'center', justifyContent: 'center', marginBottom: 22 }}>
-                {f.icon}
+        <h2 style={{ textAlign: 'center', fontSize: 'clamp(26px, 4vw, 40px)', fontWeight: 700, color: '#4A1B0C', marginBottom: 12, letterSpacing: '-1px', fontFamily: 'var(--font-poppins)' }}>
+          Everything you need to learn smarter
+        </h2>
+        <p style={{ textAlign: 'center', color: '#993C1D', fontSize: 15, marginBottom: 48, opacity: 0.75 }}>
+          Five powerful features, one voice-first platform
+        </p>
+
+        {/* Carousel wrapper */}
+        <div style={{ maxWidth: 1180, margin: '0 auto', position: 'relative' }}>
+          {/* Prev arrow */}
+          <button
+            onClick={() => goFeat(featIdx - 1)}
+            aria-label="Previous feature"
+            style={{ position: 'absolute', left: -24, top: '50%', transform: 'translateY(-50%)', zIndex: 10, width: 44, height: 44, borderRadius: '50%', border: '2px solid #F0D8CE', background: '#FFFBF7', cursor: 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'center', boxShadow: '0 2px 12px rgba(216,90,48,0.10)', transition: 'background 0.18s, border-color 0.18s' }}
+            onMouseEnter={e => { (e.currentTarget as HTMLButtonElement).style.background = '#FFF0E8'; (e.currentTarget as HTMLButtonElement).style.borderColor = '#D85A30'; }}
+            onMouseLeave={e => { (e.currentTarget as HTMLButtonElement).style.background = '#FFFBF7'; (e.currentTarget as HTMLButtonElement).style.borderColor = '#F0D8CE'; }}
+          >
+            <svg viewBox="0 0 20 20" width="18" height="18" fill="none"><path d="M13 16l-6-6 6-6" stroke="#D85A30" strokeWidth="2.2" strokeLinecap="round" strokeLinejoin="round" /></svg>
+          </button>
+
+          {/* Slide card */}
+          <div style={{
+            background: '#FFF8F3',
+            borderRadius: 24,
+            boxShadow: '0 4px 40px rgba(216,90,48,0.09)',
+            overflow: 'hidden',
+            opacity: featAnim ? 0 : 1,
+            transform: featAnim ? 'translateY(10px)' : 'translateY(0)',
+            transition: 'opacity 0.18s ease, transform 0.18s ease',
+          }}>
+            <div style={{ display: 'flex', flexWrap: 'wrap', minHeight: 380 }}>
+
+              {/* Left: text */}
+              <div style={{ flex: '1 1 340px', padding: 'clamp(32px, 5vw, 52px)', display: 'flex', flexDirection: 'column', justifyContent: 'center' }}>
+                {/* Badge row */}
+                <div style={{ display: 'flex', alignItems: 'center', gap: 12, marginBottom: 20 }}>
+                  <span style={{ fontWeight: 800, fontSize: 13, color: FEATURE_SLIDES[featIdx].accent, background: FEATURE_SLIDES[featIdx].bg, borderRadius: 8, padding: '4px 12px', letterSpacing: '0.04em', fontFamily: 'var(--font-poppins)' }}>
+                    {FEATURE_SLIDES[featIdx].badge}
+                  </span>
+                  <span style={{ fontSize: 13, color: '#C4A090', fontWeight: 600, fontFamily: 'var(--font-poppins)' }}>
+                    {FEATURE_SLIDES[featIdx].num} / 0{FEATURE_SLIDES.length}
+                  </span>
+                </div>
+
+                <h3 style={{ fontSize: 'clamp(20px, 3vw, 28px)', fontWeight: 800, color: '#4A1B0C', marginBottom: 24, letterSpacing: '-0.5px', lineHeight: 1.2, fontFamily: 'var(--font-poppins)' }}>
+                  {FEATURE_SLIDES[featIdx].title}
+                </h3>
+
+                <ul style={{ listStyle: 'none', padding: 0, margin: '0 0 32px', display: 'flex', flexDirection: 'column', gap: 12 }}>
+                  {FEATURE_SLIDES[featIdx].bullets.map((b, i) => (
+                    <li key={i} style={{ display: 'flex', alignItems: 'flex-start', gap: 10 }}>
+                      <span style={{ width: 20, height: 20, borderRadius: '50%', background: FEATURE_SLIDES[featIdx].bg, display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0, marginTop: 1 }}>
+                        <svg viewBox="0 0 12 12" width="10" height="10" fill="none"><path d="M2 6l3 3 5-5" stroke={FEATURE_SLIDES[featIdx].accent} strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round" /></svg>
+                      </span>
+                      <span style={{ color: '#6B3020', fontSize: 14.5, lineHeight: 1.6 }}>{b}</span>
+                    </li>
+                  ))}
+                </ul>
+
+                {/* Dot navigation */}
+                <div style={{ display: 'flex', gap: 8 }}>
+                  {FEATURE_SLIDES.map((_, i) => (
+                    <button key={i} onClick={() => goFeat(i)} aria-label={`Go to feature ${i + 1}`}
+                      style={{ width: i === featIdx ? 24 : 8, height: 8, borderRadius: 4, border: 'none', cursor: 'pointer', background: i === featIdx ? FEATURE_SLIDES[featIdx].accent : '#E8D4CC', padding: 0, transition: 'width 0.25s, background 0.25s' }}
+                    />
+                  ))}
+                </div>
               </div>
-              <h3 style={{ fontSize: 19, fontWeight: 700, color: '#4A1B0C', marginBottom: 12, letterSpacing: '-0.3px', fontFamily: 'var(--font-poppins)' }}>{f.title}</h3>
-              <p style={{ color: '#993C1D', lineHeight: 1.72, fontSize: 14.5 }}>{f.desc}</p>
+
+              {/* Right: image or placeholder */}
+              <div style={{ flex: '1 1 430px', minHeight: 280, position: 'relative', overflow: 'hidden' }}>
+                {FEATURE_SLIDES[featIdx].image ? (
+                  <img
+                    src={FEATURE_SLIDES[featIdx].image!}
+                    alt={FEATURE_SLIDES[featIdx].title}
+                    style={{ width: '100%', height: '100%', objectFit: 'cover', display: 'block', minHeight: 280 }}
+                  />
+                ) : (
+                  <div style={{ width: '100%', height: '100%', minHeight: 280, background: `linear-gradient(135deg, ${FEATURE_SLIDES[featIdx].bg} 0%, #FFF8F3 100%)`, display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', gap: 16 }}>
+                    <div style={{ width: 96, height: 96, borderRadius: 24, background: '#FFFFFF', boxShadow: `0 4px 24px ${FEATURE_SLIDES[featIdx].accent}22`, display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+                      {FEATURE_SLIDES[featIdx].icon}
+                    </div>
+                    <span style={{ fontSize: 12, color: FEATURE_SLIDES[featIdx].accent, fontWeight: 600, opacity: 0.7, letterSpacing: '0.08em', fontFamily: 'var(--font-poppins)' }}>
+                      IMAGE COMING SOON
+                    </span>
+                  </div>
+                )}
+              </div>
+
             </div>
-          ))}
+          </div>
+
+          {/* Next arrow */}
+          <button
+            onClick={() => goFeat(featIdx + 1)}
+            aria-label="Next feature"
+            style={{ position: 'absolute', right: -24, top: '50%', transform: 'translateY(-50%)', zIndex: 10, width: 44, height: 44, borderRadius: '50%', border: '2px solid #F0D8CE', background: '#FFFBF7', cursor: 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'center', boxShadow: '0 2px 12px rgba(216,90,48,0.10)', transition: 'background 0.18s, border-color 0.18s' }}
+            onMouseEnter={e => { (e.currentTarget as HTMLButtonElement).style.background = '#FFF0E8'; (e.currentTarget as HTMLButtonElement).style.borderColor = '#D85A30'; }}
+            onMouseLeave={e => { (e.currentTarget as HTMLButtonElement).style.background = '#FFFBF7'; (e.currentTarget as HTMLButtonElement).style.borderColor = '#F0D8CE'; }}
+          >
+            <svg viewBox="0 0 20 20" width="18" height="18" fill="none"><path d="M7 4l6 6-6 6" stroke="#D85A30" strokeWidth="2.2" strokeLinecap="round" strokeLinejoin="round" /></svg>
+          </button>
         </div>
       </section>
 

@@ -19,10 +19,14 @@ For ALL frontend/UI work — landing page, dashboard, session page, exam page, c
 
 ```bash
 npm run dev          # start local dev server
+npm run build        # production build (also type-checks)
+npm run start        # serve production build locally
 npx drizzle-kit push # push schema changes to Neon (no migrations, direct push)
 ```
 
 Environment file is **`.env`** (not `.env.local`). All keys including `GEMINI_API_KEY` live there.
+
+There is no lint or test script.
 
 ---
 
@@ -222,6 +226,9 @@ Send trigger using **`sendRealtimeInput`** with text after `sessionRef.current =
 ### SDK
 Use `@google/genai` (new unified SDK). `@google/generative-ai` is deprecated.
 
+### PDF generation
+`src/app/api/session/transcript/route.ts` generates PDFs via `@react-pdf/renderer`. It uses `React.createElement(...)` instead of JSX — the pdf renderer components aren't compatible with the Next.js JSX transform inside API routes. Keep this pattern when editing that file.
+
 ---
 
 ## Exam Mode — Additional Patterns
@@ -256,6 +263,42 @@ if (aiText.includes('Exam complete! You answered all')) {
   setTimeout(() => handleExamComplete(), 400); // 400ms lets last transcript entry commit
 }
 ```
+
+---
+
+## Features Section — Carousel
+
+The landing page features section (`src/app/page.tsx`) uses a 5-slide image carousel replacing the old static grid.
+
+### State
+```typescript
+const [featIdx, setFeatIdx] = useState(0);
+const [featAnim, setFeatAnim] = useState(false);
+const goFeat = (next: number) => {
+  setFeatAnim(true);
+  setTimeout(() => { setFeatIdx((next + FEATURE_SLIDES.length) % FEATURE_SLIDES.length); setFeatAnim(false); }, 180);
+};
+```
+
+### `FEATURE_SLIDES` constant (top of file)
+5 entries, each with: `num`, `badge`, `title`, `bullets[]`, `image` (Cloudinary URL), `accent` (hex), `bg` (hex), `icon` (SVG element).
+
+| # | Badge | Accent | Image Cloudinary ID |
+|---|-------|--------|---------------------|
+| 01 | Train Mode | `#D85A30` | `feature1_hekepo` |
+| 02 | Exam Mode | `#3B5BDB` | `feature2_e1uhhv` |
+| 03 | Dashboard | `#1D9E75` | `feature3_bgc9qi` |
+| 04 | Smart Gating | `#6B5DB0` | `feature4_wbpatl` |
+| 05 | Tech Stack | `#C47A14` | `techstuff_fko6ad` |
+
+### Layout
+- Wrapper: `maxWidth: 1180`, `margin: '0 auto'`, `position: 'relative'`
+- Slide card: `display: flex`, `flexWrap: 'wrap'`, `minHeight: 380`, `background: #FFF8F3`, `borderRadius: 24`
+- Left text col: `flex: '1 1 340px'`, padding `clamp(32px, 5vw, 52px)` — badge row, title, bullet list with check icons, dot nav
+- Right image col: `flex: '1 1 420px'`, `minHeight: 280`, `overflow: hidden` — `<img objectFit: cover>` if `image` exists, else gradient placeholder with centered SVG icon
+- Arrows: `position: absolute`, `left: -24` / `right: -24`, `top: 50%`
+- Slide transition: `opacity` + `translateY(10px)` fade driven by `featAnim` state (180 ms)
+- Dot nav: pill width `24px` for active, `8px` for inactive — transitions on `width` + `background`
 
 ---
 
@@ -302,6 +345,17 @@ All UI uses **inline styles** (no Tailwind classes for layout). Two color themes
 | Free | `#F0EDF9` | `#6B5DB0` |
 | Plus | `#E0F5EE` | `#1D9E75` |
 | Pro | `linear-gradient(135deg,#D85A30,#EF9F27)` | `#FFFBF7` |
+
+### Fonts
+| CSS variable | Font | Weights |
+|---|---|---|
+| `--font-sans` | Inter | default body |
+| `--font-poppins` | Poppins | 400–800, headings/badges |
+
+Use `fontFamily: 'var(--font-poppins)'` inline for headings/badges; body text inherits Inter via `--font-sans`.
+
+### shadcn/ui components
+`src/components/ui/` contains standard shadcn components (Button, Card, Dialog, etc.). They exist but the project pattern is **inline styles**, not Tailwind utility classes. Use shadcn only when introducing genuinely new interactive primitives; match the coral/indigo color system above.
 
 Logo Cloudinary URL: `https://res.cloudinary.com/dkqbzwicr/image/upload/q_auto/f_auto/v1776668144/logotutortalk_ecmdbm.png`
 
