@@ -1,6 +1,6 @@
 'use client';
 
-import { useEffect, useState } from 'react';
+import { useEffect, useRef, useState } from 'react';
 import Link from 'next/link';
 import { SignInButton, SignUpButton, UserButton, useAuth, useUser } from '@clerk/nextjs';
 import { PLAN_BADGE, getPlanFromHas, type PlanKey } from '@/lib/plans';
@@ -65,6 +65,12 @@ const TESTIMONIALS = [
   { text: 'The PDF reports are perfect for last-minute revision before exams. I use them every single time.', name: 'Sofia L.', subject: 'Chemistry', init: 'S', delay: '2.8s' },
 ];
 
+const VIDEOS = [
+  'https://res.cloudinary.com/dkqbzwicr/video/upload/q_auto/f_auto/v1776919480/video1_qsblo9.webm',
+  'https://res.cloudinary.com/dkqbzwicr/video/upload/q_auto/f_auto/v1776919472/video2_bqu7ob.webm',
+  'https://res.cloudinary.com/dkqbzwicr/video/upload/q_auto/f_auto/v1776919466/video3_el5iw0.webm',
+];
+
 const ORB_CYCLE: Array<'idle' | 'listening' | 'speaking' | 'interrupted'> = [
   'idle', 'listening', 'speaking', 'speaking', 'idle', 'listening',
 ];
@@ -114,11 +120,93 @@ export default function LandingPage() {
     }
   }, [isSignedIn, user]);
 
+  // ── Video carousel ──
+  const [activeVideo, setActiveVideo] = useState(0);
+  const [isMuted, setIsMuted] = useState(true);
+  const [videoPaused, setVideoPaused] = useState(false);
+  const videoRef0 = useRef<HTMLVideoElement>(null);
+  const videoRef1 = useRef<HTMLVideoElement>(null);
+  const videoRef2 = useRef<HTMLVideoElement>(null);
+  const heroRef = useRef<HTMLDivElement>(null);
+  const isInViewRef = useRef(true);
+  const activeVideoRef = useRef(0);
+
+  const pauseVideos = () => {
+    videoRef0.current?.pause(); videoRef1.current?.pause(); videoRef2.current?.pause();
+    setVideoPaused(true);
+  };
+
+  // Sync muted (React muted attr is not reactive for <video>)
+  useEffect(() => {
+    [videoRef0, videoRef1, videoRef2].forEach(r => { if (r.current) r.current.muted = isMuted; });
+  }, [isMuted]);
+
+  // Play/pause the right video when activeVideo or videoPaused changes
+  useEffect(() => {
+    [videoRef0, videoRef1, videoRef2].forEach((r, i) => {
+      if (i === activeVideo && !videoPaused) {
+        r.current?.play().catch(() => {});
+      } else {
+        r.current?.pause();
+        if (i !== activeVideo && r.current) r.current.currentTime = 0;
+      }
+    });
+    activeVideoRef.current = activeVideo;
+  }, [activeVideo, videoPaused]);
+
+  // Auto-advance every 5 s when not paused
+  useEffect(() => {
+    if (videoPaused) return;
+    const t = setInterval(() => setActiveVideo(v => (v + 1) % 3), 5000);
+    return () => clearInterval(t);
+  }, [videoPaused]);
+
+  // Pause on scroll-out and tab switch
+  useEffect(() => {
+    const pause = () => setVideoPaused(true);
+    const tryResume = () => { if (isInViewRef.current && !document.hidden) setVideoPaused(false); };
+    const obs = new IntersectionObserver(([e]) => {
+      isInViewRef.current = e.isIntersecting;
+      if (!e.isIntersecting) pause(); else tryResume();
+    }, { threshold: 0.15 });
+    if (heroRef.current) obs.observe(heroRef.current);
+    const onVis = () => { if (document.hidden) pause(); else tryResume(); };
+    document.addEventListener('visibilitychange', onVis);
+    return () => { obs.disconnect(); document.removeEventListener('visibilitychange', onVis); };
+  }, []); // eslint-disable-line react-hooks/exhaustive-deps
+
   return (
     <div className="page-in" style={{ minHeight: '100vh', background: '#FFFBF7', overflowX: 'hidden' }}>
 
+      {/* ── Nav + Hero wrapper — shared video background ── */}
+      <div ref={heroRef} style={{ position: 'relative', border: 'none' }}>
+
+        {/* Video background — covers nav + hero as one block */}
+        {VIDEOS.map((src, i) => (
+          <video
+            key={i}
+            ref={i === 0 ? videoRef0 : i === 1 ? videoRef1 : videoRef2}
+            src={src}
+            loop
+            playsInline
+            muted
+            style={{
+              position: 'absolute', inset: 0,
+              width: '100%', height: '100%',
+              objectFit: 'cover',
+              opacity: activeVideo === i ? 1 : 0,
+              transition: 'opacity 0.75s cubic-bezier(0.4, 0, 0.2, 1)',
+              pointerEvents: 'none',
+              zIndex: 0,
+            }}
+          />
+        ))}
+
+        {/* Warm cream overlay — keeps text readable */}
+        <div style={{ position: 'absolute', inset: 0, background: 'rgba(255,251,247,0.55)', zIndex: 1, pointerEvents: 'none' }} />
+
       {/* ── Nav ── */}
-      <nav className="tt-nav tt-nav-sticky" style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+      <nav className="tt-nav tt-nav-sticky" style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', border: 'none', boxShadow: 'none', position: 'relative', zIndex: 50, background: 'transparent' }}>
         <Link href="/" style={{ display: 'flex', alignItems: 'center', gap: 10, textDecoration: 'none' }}>
           <img src="https://res.cloudinary.com/dkqbzwicr/image/upload/q_auto/f_auto/v1776668144/logotutortalk_ecmdbm.png" alt="TutorTalk" style={{ width: 40, height: 40, objectFit: 'contain' }} />
           <span style={{ fontSize: 20, fontWeight: 800, color: '#4A1B0C', letterSpacing: '-0.4px', fontFamily: 'var(--font-poppins)' }}>TutorTalk</span>
@@ -127,15 +215,15 @@ export default function LandingPage() {
         {/* Center nav links */}
         <div className="tt-nav-links" style={{ display: 'flex', gap: 34, alignItems: 'center' }}>
           {isSignedIn ? (
-            <a href="#features" className="tt-nav-link">Features</a>
+            <a href="#features" className="tt-nav-link" onClick={pauseVideos}>Features</a>
           ) : (
-            <SignInButton><button className="tt-nav-link">Features</button></SignInButton>
+            <SignInButton><button className="tt-nav-link" onClick={pauseVideos}>Features</button></SignInButton>
           )}
-          <a href="#howitworks" className="tt-nav-link">How It Works</a>
+          <a href="#howitworks" className="tt-nav-link" onClick={pauseVideos}>How It Works</a>
           {isSignedIn ? (
-            <a href="#pricing" className="tt-nav-link">Pricing</a>
+            <a href="#pricing" className="tt-nav-link" onClick={pauseVideos}>Pricing</a>
           ) : (
-            <SignInButton><button className="tt-nav-link">Pricing</button></SignInButton>
+            <SignInButton><button className="tt-nav-link" onClick={pauseVideos}>Pricing</button></SignInButton>
           )}
         </div>
 
@@ -159,7 +247,7 @@ export default function LandingPage() {
             </>
           ) : (
             <SignInButton>
-              <button className="cta-btn" style={{ color: '#FFFBF7', padding: '10px 24px', borderRadius: 99, border: 'none', cursor: 'pointer', fontWeight: 700, fontSize: 14, fontFamily: 'var(--font-poppins)' }}>
+              <button className="cta-btn" onClick={pauseVideos} style={{ color: '#FFFBF7', padding: '10px 24px', borderRadius: 99, border: 'none', cursor: 'pointer', fontWeight: 700, fontSize: 14, fontFamily: 'var(--font-poppins)' }}>
                 Sign in
               </button>
             </SignInButton>
@@ -168,19 +256,20 @@ export default function LandingPage() {
       </nav>
 
       {/* ── Hero ── */}
-      <section className="tt-section" style={{ position: 'relative', paddingTop: 40, paddingBottom: 80, textAlign: 'center', display: 'flex', flexDirection: 'column', alignItems: 'center' }}>
-        <div className="tt-blob-hide" style={{ position: 'absolute', top: -80, right: -100, width: 560, height: 560, borderRadius: '50%', background: 'radial-gradient(circle, rgba(216,90,48,0.09) 0%, transparent 65%)', animation: 'blob-drift 11s ease-in-out infinite', pointerEvents: 'none', zIndex: 0 }} />
-        <div className="tt-blob-hide" style={{ position: 'absolute', bottom: -80, left: -120, width: 640, height: 640, borderRadius: '50%', background: 'radial-gradient(circle, rgba(127,119,221,0.07) 0%, transparent 65%)', animation: 'blob-drift 15s ease-in-out reverse infinite', pointerEvents: 'none', zIndex: 0 }} />
-        <div style={{ position: 'absolute', top: '35%', left: '3%', width: 360, height: 360, borderRadius: '50%', background: 'radial-gradient(circle, rgba(29,158,117,0.06) 0%, transparent 65%)', animation: 'blob-drift 13s ease-in-out 2s infinite', pointerEvents: 'none', zIndex: 0 }} />
+      <section className="tt-section" style={{ position: 'relative', paddingTop: 40, paddingBottom: 52, textAlign: 'left', display: 'flex', flexDirection: 'column', alignItems: 'flex-start' }}>
 
-        <div style={{ position: 'relative', zIndex: 1, display: 'flex', flexDirection: 'column', alignItems: 'center' }}>
+        <div className="tt-blob-hide" style={{ position: 'absolute', top: -80, right: -100, width: 560, height: 560, borderRadius: '50%', background: 'radial-gradient(circle, rgba(216,90,48,0.09) 0%, transparent 65%)', animation: 'blob-drift 11s ease-in-out infinite', pointerEvents: 'none', zIndex: 2 }} />
+        <div className="tt-blob-hide" style={{ position: 'absolute', bottom: -80, left: -120, width: 640, height: 640, borderRadius: '50%', background: 'radial-gradient(circle, rgba(127,119,221,0.07) 0%, transparent 65%)', animation: 'blob-drift 15s ease-in-out reverse infinite', pointerEvents: 'none', zIndex: 2 }} />
+        <div style={{ position: 'absolute', top: '35%', left: '3%', width: 360, height: 360, borderRadius: '50%', background: 'radial-gradient(circle, rgba(29,158,117,0.06) 0%, transparent 65%)', animation: 'blob-drift 13s ease-in-out 2s infinite', pointerEvents: 'none', zIndex: 2 }} />
+
+        <div style={{ position: 'relative', zIndex: 3, display: 'flex', flexDirection: 'column', alignItems: 'flex-start', width: '100%' }}>
           {isSignedIn && user ? (
-            <div style={{ display: 'inline-flex', alignItems: 'center', gap: 10, background: '#FAECE7', borderRadius: 99, padding: '10px 24px', marginBottom: 36 }}>
-              <span style={{ fontSize: 18 }}>👋</span>
-              <span style={{ color: '#D85A30', fontWeight: 700, fontSize: 14 }}>Welcome back, {user.firstName ?? user.username ?? 'there'}!</span>
+            <div style={{ display: 'inline-flex', alignItems: 'center', gap: 8, background: '#FAECE7', borderRadius: 99, padding: '10px 24px', marginBottom: 36, lineHeight: 1 }}>
+              <span style={{ fontSize: 13 }}>👋</span>
+              <span style={{ color: '#D85A30', fontWeight: 700, fontSize: 13, lineHeight: 1 }}>Welcome back, {user.firstName ?? user.username ?? 'there'}!</span>
             </div>
           ) : (
-            <div style={{ display: 'inline-flex', alignItems: 'center', gap: 8, background: '#FAECE7', borderRadius: 99, padding: '8px 22px', marginBottom: 36 }}>
+            <div style={{ display: 'inline-flex', alignItems: 'center', gap: 8, background: '#FAECE7', borderRadius: 99, padding: '10px 24px', marginBottom: 36 }}>
               <div className="live-dot" style={{ width: 8, height: 8, borderRadius: '50%', background: '#D4537E', flexShrink: 0 }} />
               <span style={{ color: '#D85A30', fontWeight: 600, fontSize: 13, letterSpacing: '0.2px' }}>Socratic AI tutoring · Live voice</span>
             </div>
@@ -191,11 +280,11 @@ export default function LandingPage() {
             <span style={{ color: '#4A1B0C' }}>Learn by talking.</span>
           </h1>
 
-          <p style={{ fontSize: 19, color: '#993C1D', maxWidth: 520, lineHeight: 1.72, marginBottom: 44, opacity: 0.9 }}>
+          <p style={{ fontSize: 19, color: '#993C1D', maxWidth: 520, lineHeight: 1.72, marginBottom: 28, opacity: 0.9 }}>
             TutorTalk uses Socratic voice AI to guide you to answers — not just give them.
           </p>
 
-          <div style={{ display: 'flex', gap: 14, marginBottom: 72, alignItems: 'center', flexWrap: 'wrap', justifyContent: 'center' }}>
+          <div style={{ display: 'flex', gap: 14, marginBottom: 20, alignItems: 'center', flexWrap: 'wrap' }}>
             {isSignedIn ? (
               <Link href="/dashboard" className="cta-btn" style={{ color: '#FFFBF7', padding: 'clamp(14px,2vw,18px) clamp(24px,4vw,50px)', borderRadius: 99, textDecoration: 'none', fontWeight: 700, fontSize: 'clamp(15px,2vw,18px)', fontFamily: 'var(--font-poppins)', letterSpacing: '-0.3px', display: 'inline-block' }}>
                 Start learning free
@@ -209,12 +298,46 @@ export default function LandingPage() {
             )}
           </div>
 
-          <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', gap: 20 }}>
-            <VoiceOrb state={orbState} size="lg" />
-            <div style={{ display: 'flex', alignItems: 'center', gap: 8, background: '#FFF8F3', borderRadius: 99, padding: '9px 22px', boxShadow: '0 2px 16px rgba(216,90,48,0.08)' }}>
-              <div style={{ width: 8, height: 8, borderRadius: '50%', flexShrink: 0, background: STATE_DOT[orbState], opacity: 0.8 }} />
-              <span style={{ color: '#4A1B0C', fontSize: 13, fontWeight: 500 }}>{STATE_LABEL[orbState]}</span>
-            </div>
+          {/* Video controls — clip selector + mute toggle */}
+          <div style={{ display: 'flex', alignItems: 'center', gap: 12, marginBottom: 0, background: 'rgba(255,251,247,0.90)', backdropFilter: 'blur(10px)', WebkitBackdropFilter: 'blur(10px)', borderRadius: 99, padding: '8px 18px', boxShadow: '0 2px 16px rgba(216,90,48,0.10)', border: '1px solid rgba(216,90,48,0.12)', alignSelf: 'flex-end' }}>
+            {VIDEOS.map((_, i) => (
+              <button
+                key={i}
+                onClick={() => { setActiveVideo(i); activeVideoRef.current = i; }}
+                aria-label={`Play video ${i + 1}`}
+                style={{
+                  width: activeVideo === i ? 24 : 8,
+                  height: 8,
+                  borderRadius: 99,
+                  background: activeVideo === i ? '#D85A30' : 'rgba(153,60,29,0.25)',
+                  border: 'none',
+                  cursor: 'pointer',
+                  padding: 0,
+                  transition: 'width 0.35s ease, background 0.35s ease',
+                }}
+              />
+            ))}
+            <div style={{ width: 1, height: 16, background: 'rgba(216,90,48,0.25)', flexShrink: 0 }} />
+            <button
+              onClick={() => setIsMuted(m => !m)}
+              aria-label={isMuted ? 'Unmute video' : 'Mute video'}
+              style={{ background: 'none', border: 'none', cursor: 'pointer', padding: '2px 4px', display: 'flex', alignItems: 'center', gap: 6, color: '#993C1D', fontWeight: 700, fontSize: 12, fontFamily: 'var(--font-poppins)' }}
+            >
+              <span style={{ fontSize: 16 }}>{isMuted ? '🔇' : '🔊'}</span>
+              {isMuted ? 'Unmute' : 'Mute'}
+            </button>
+          </div>
+        </div>
+      </section>
+      </div>{/* end nav+hero video wrapper */}
+
+      {/* ── VoiceOrb ── */}
+      <section className="tt-section" style={{ paddingTop: 56, paddingBottom: 56, textAlign: 'center', display: 'flex', flexDirection: 'column', alignItems: 'center' }}>
+        <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', gap: 20 }}>
+          <VoiceOrb state={orbState} size="lg" />
+          <div style={{ display: 'flex', alignItems: 'center', gap: 8, background: '#FFF8F3', borderRadius: 99, padding: '9px 22px', boxShadow: '0 2px 16px rgba(216,90,48,0.08)' }}>
+            <div style={{ width: 8, height: 8, borderRadius: '50%', flexShrink: 0, background: STATE_DOT[orbState], opacity: 0.8 }} />
+            <span style={{ color: '#4A1B0C', fontSize: 13, fontWeight: 500 }}>{STATE_LABEL[orbState]}</span>
           </div>
         </div>
       </section>
