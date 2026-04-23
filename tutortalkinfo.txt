@@ -1,0 +1,148 @@
+================================================================================
+  TUTORTALK — AI-Powered Voice Learning Platform
+  https://tutortalk.vercel.app
+================================================================================
+
+DESCRIPTION
+-----------
+TutorTalk is an AI-powered voice learning platform that puts a personal tutor
+and exam conductor in every student's pocket. Using Google's Gemini Live API,
+it conducts real-time spoken conversations — guiding students through concepts
+via the Socratic method, and testing them with voice-based MCQ exams. All
+sessions are transcribed live and available as downloadable PDF reports.
+
+--------------------------------------------------------------------------------
+
+CORE FEATURES
+-------------
+
+Feature 1 : 
+[ TRAIN MODE — Socratic Voice Tutor ]
+  • Fully voice-driven AI tutor powered by Gemini 3.1 Flash Live
+  • Never gives answers directly — guides students to discover answers through
+    targeted questions (Socratic method)
+  • Choose Study Level: Class 10 / Intermediate / JEE / NEET / UPSC
+  • Choose Subject, Topic (optional), and Difficulty (Easy / Medium / Hard)
+  • Live real-time transcription — both student and AI speech shown as chat
+  • Animated VoiceOrb visualizes AI state: Idle → Listening → Speaking → Interrupted
+  • Session auto-ends at plan time limit (5 min free / 30 min Plus)
+  • Downloadable PDF transcript after every session.
+
+
+Feature 2 : 
+[ EXAM MODE — Voice MCQ Exam Conductor ]
+  • AI reads questions aloud; student answers by voice
+  • Instant spoken feedback: "Correct!" or "Incorrect" + brief explanation
+  • Competitive exam scoring: +4 correct / −1 wrong
+  • Choose Level, Subject, and Number of Questions (up to 5 free / unlimited paid)
+  • Countdown timer: 1 minute per question — auto-ends when time runs out
+  • Live score panel: current marks, questions answered, accuracy %
+  • Results screen: final marks, max marks, accuracy, time taken
+  • 5 exam levels with pattern-specific AI prompts: Class 10, Intermediate,
+    JEE, NEET, UPSC
+
+Feature 3 :   
+[ DASHBOARD ]
+  • View all past Train and Exam sessions
+  • Session cards show subject, duration, type badge, and exam score
+  • Aggregate metrics: total sessions, total minutes, topics covered
+  • Quota tracker: sessions left and exams left (free plan)
+  • History limited to 1 session for free users; unlimited for Plus/Pro
+
+Feature 4 : 
+[ SMART PLAN GATING ]
+  • Subjects, difficulty levels, question counts, and session limits all gated
+    by subscription plan
+  • Visual locks on unavailable options — no hidden paywalls
+  • Plan badge shown in navbar at all times (Free / Plus / Pro)
+
+--------------------------------------------------------------------------------
+
+Feature 5 : 
+TECH STACK
+----------
+
+  Framework      Next.js 15 · React 19 · TypeScript 5
+  Auth           Clerk v7 (JWT-based, plan sync via has())
+  Database       Neon PostgreSQL (serverless) · Drizzle ORM
+  AI / Voice     Google Gemini 3.1 Flash Live API (WebSocket, browser-direct)
+                 AudioWorklet — PCM16 mic capture at 16 kHz
+                 AudioContext — PCM16 playback at 24 kHz
+  PDF            Puppeteer Core + Chromium · @react-pdf/renderer
+  UI / Styling   Tailwind CSS 4 · Framer Motion · Shadcn · Base UI · Lucide React
+  Image Hosting  Cloudinary · next-cloudinary
+  Deployment     Vercel (Edge Functions + CDN)
+  Utilities      Drizzle Kit · Zod · date-fns · nanoid
+
+--------------------------------------------------------------------------------
+
+REAL-WORLD PROBLEMS SOLVED
+--------------------------
+
+  1. PASSIVE LEARNING
+     Most students read and re-read without truly understanding. TutorTalk's
+     Socratic tutor forces active recall and reasoning — the AI never hands
+     over an answer, making students think it through step by step.
+
+  2. NO IMMEDIATE EXAM FEEDBACK
+     Traditional practice papers give feedback days later — or never. TutorTalk's
+     exam mode delivers instant spoken feedback after every answer, with a brief
+     explanation, so students learn in the moment.
+
+  3. EXAM ANXIETY & UNFAMILIARITY WITH PATTERNS
+     Competitive exams like JEE, NEET, and UPSC have specific question styles
+     that students rarely encounter in regular school. TutorTalk uses level-specific
+     AI prompts that mirror real exam patterns, building familiarity and confidence.
+
+  4. EXPENSIVE / INACCESSIBLE TUTORING
+     Quality tutors cost hundreds per hour and are geographically limited.
+     TutorTalk delivers an always-available, patient AI voice tutor at a fraction
+     of the cost — free tier included.
+
+  5. NO STUDY ACCOUNTABILITY
+     Students forget what they studied and can't track their own growth.
+     Session transcripts, PDF downloads, and a dashboard with full history
+     create a personal academic record they can review anytime.
+
+  6. FRAGMENTED STUDY TOOLS
+     Students juggle different apps for tutoring, exam practice, and progress
+     tracking. TutorTalk unifies all three in one voice-first platform with a
+     single login and shared session history.
+
+--------------------------------------------------------------------------------
+
+PRICING TIERS
+-------------
+
+  FREE                     $0 / month
+  ─────────────────────────────────────
+  • 2 tutor sessions/month (5 min each)
+  • 1 exam/month (max 5 questions)
+  • Subjects: Math, English, History (tutor) | Math, Chemistry (exam)
+  • Easy & Medium difficulty only
+  • 1 session shown in dashboard history
+
+  PLUS                     $8 / month
+  ─────────────────────────────────────
+  • 30 tutor sessions/month (30 min each)
+  • 30 exams/month (unlimited questions)
+  • All subjects and all 5 levels
+  • Hard difficulty unlocked
+  • Full dashboard history
+  • PDF transcript downloads
+
+  PRO                      $18 / month
+  ─────────────────────────────────────
+  • Unlimited tutor sessions (no time cap)
+  • Unlimited exams
+  • All subjects, levels, and difficulty
+  • Full dashboard history
+  • PDF transcript downloads
+  • Priority AI response
+
+--------------------------------------------------------------------------------
+
+DEPLOYED AT:  https://tutortalk.vercel.app
+REPOSITORY:   github.com/narendraAnalytics/tutortalk
+BUILT WITH:   Next.js · Gemini Live · Clerk · Neon · Vercel
+================================================================================
