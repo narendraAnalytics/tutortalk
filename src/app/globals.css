@@ -261,3 +261,39 @@
   .tt-cta-banner    { flex-direction: column; text-align: center; }
   .tt-session-topbar-right { flex-wrap: wrap; gap: 10px; justify-content: flex-end; }
 }
+/* ── How It Works video player ── */
+.vid-seek {
+  -webkit-appearance: none;
+  appearance: none;
+  height: 4px;
+  border-radius: 2px;
+  background: rgba(255,255,255,0.25);
+  outline: none;
+  cursor: pointer;
+}
+.vid-seek::-webkit-slider-thumb {
+  -webkit-appearance: none;
+  width: 14px;
+  height: 14px;
+  border-radius: 50%;
+  background: #EF9F27;
+  cursor: pointer;
+  box-shadow: 0 0 4px rgba(0,0,0,0.4);
+}
+.vid-seek::-moz-range-thumb {
+  width: 14px;
+  height: 14px;
+  border-radius: 50%;
+  background: #EF9F27;
+  cursor: pointer;
+  border: none;
+}
+
+/* Mobile: hide video col by default, show watch button */
+@media (max-width: 767px) {
+  .hiw-vid-col        { display: none; }
+  .hiw-vid-col.hiw-vid-open { display: block; position: fixed; inset: 0; z-index: 200; background: rgba(0,0,0,0.85); display: flex; align-items: center; padding: 16px; }
+  .hiw-vid-col.hiw-vid-open > div { width: 100%; }
+  .hiw-watch-btn      { display: flex !important; }
+  .hiw-vid-close      { display: flex !important; }
+}

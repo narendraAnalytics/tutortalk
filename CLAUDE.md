@@ -266,6 +266,102 @@ if (aiText.includes('Exam complete! You answered all')) {
 
 ---
 
+## How It Works — Video Player
+
+The "How It Works" section (`src/app/page.tsx`, `<section id="howitworks">`) contains a custom HTML5 video player with full controls.
+
+### Video source
+Cloudinary WebM: `https://res.cloudinary.com/dkqbzwicr/video/upload/q_auto/f_auto/v1777015522/tutortalkvideo_bzd31u.webm`
+
+### State & refs
+```typescript
+const [vidPlaying, setVidPlaying] = useState(false);
+const [vidTime,    setVidTime]    = useState(0);
+const [vidDur,     setVidDur]     = useState(0);
+const [showVidMobile, setShowVidMobile] = useState(false);
+const vidRef    = useRef<HTMLVideoElement>(null);
+const vidWrapRef = useRef<HTMLDivElement>(null);
+```
+
+### Helper functions
+```typescript
+const vidToggle    = () => { /* play/pause */ };
+const vidSkip      = (s: number) => { /* ±10 s skip */ };
+const vidSeek      = (e) => { const val = Number(e.target.value); setVidTime(val); if (vidRef.current) vidRef.current.currentTime = val; };
+const fmtTime      = (s) => `${Math.floor(s/60)}:${String(Math.floor(s%60)).padStart(2,'0')}`;
+const vidFullscreen = () => { /* toggle browser fullscreen on vidWrapRef */ };
+```
+
+### Video element event handlers (CRITICAL — do not simplify)
+```tsx
+onLoadedMetadata={() => { const d = vidRef.current?.duration; if (d && isFinite(d)) setVidDur(d); }}
+onDurationChange={() => { const d = vidRef.current?.duration; if (d && isFinite(d)) setVidDur(d); }}
+onTimeUpdate={() => {
+  const v = vidRef.current;
+  if (!v) return;
+  setVidTime(v.currentTime);
+  if (v.duration && isFinite(v.duration)) setVidDur(v.duration); // corrects metadata lies
+}}
+onEnded={() => setVidPlaying(false)}
+```
+
+**Why `onTimeUpdate` also sets `vidDur`:** Cloudinary-transcoded WebM files often report an incorrect (too-short) duration in their container metadata. `onLoadedMetadata` fires with this wrong value, causing the seek slider to pin to 100% once the real playback time exceeds the stale `max`. Reading `v.duration` on every tick self-corrects as the browser discovers the true duration during playback.
+
+### Seek slider (CRITICAL)
+```tsx
+<input type="range" min={0} max={vidDur > 0 ? vidDur : 100} step={0.1}
+  value={vidTime} onChange={vidSeek} title="Seek video" className="vid-seek" />
+```
+- `vidSeek` **must** call both `setVidTime(val)` AND `vidRef.current.currentTime = val`. Without the state update, React re-renders snap the slider back to the old position, and the next `onTimeUpdate` makes it appear to "jump to the end."
+- `max={vidDur > 0 ? vidDur : 100}` — safe fallback avoids slider pinning at 100% when duration is still 0.
+- Controls bar has explicit `zIndex: 10`; play overlay has `zIndex: 2` — this ensures slider clicks are never intercepted by the overlay.
+
+### Layout
+- Split: steps list (left, `flex: 1 1 340px`) + video player (right, `flex: 1 1 460px`)
+- Video wrapper: `position: relative`, `borderRadius: 20`, `overflow: hidden`, `boxShadow`
+- Controls bar: `position: absolute, bottom: 0, zIndex: 10` — seek slider + −10s / play-pause / +10s / time / fullscreen
+- Mobile: `showVidMobile` state; ✕ close button (`title="Close video"`) hides video; "Watch how it works" button re-shows it
+- Globals CSS: `.vid-seek` — custom thumb/track styling; `.hiw-vid-col` / `.hiw-vid-open` / `.hiw-watch-btn` — mobile responsive classes
+
+---
+
+## Scroll Navigation
+
+Two scroll-helper UI elements live in `src/app/page.tsx`, driven by a shared scroll listener.
+
+### State
+```typescript
+const [scrolled,   setScrolled]   = useState(false);  // true when scrollY > 380
+const [btnBottom,  setBtnBottom]  = useState(32);      // dynamic bottom offset for scroll-to-top btn
+```
+
+### Scroll listener
+```typescript
+useEffect(() => {
+  const onScroll = () => {
+    setScrolled(window.scrollY > 380);
+    const distFromBottom = document.documentElement.scrollHeight - window.scrollY - window.innerHeight;
+    setBtnBottom(distFromBottom < 320 ? Math.max(32, 320 - distFromBottom + 32) : 32);
+  };
+  window.addEventListener('scroll', onScroll, { passive: true });
+  return () => window.removeEventListener('scroll', onScroll);
+}, []);
+```
+
+### Scroll-down arrow
+- Shown when `!scrolled` (user is near the top)
+- Placed between the hero wrapper and the VoiceOrb section
+- Uses `float-y` animation; `onClick` → `document.getElementById('features')?.scrollIntoView({ behavior: 'smooth' })`
+
+### Scroll-to-top button
+- Shown when `scrolled` (user is past 380 px)
+- Fixed position, `bottom: btnBottom` (lifts above the footer as user approaches the bottom — avoids overlap)
+- `transition: 'bottom 0.25s ease'` for smooth lift
+- `onClick` → `window.scrollTo({ top: 0, behavior: 'smooth' })`
+- Uses `float-y` animation; coral gradient background (`#D85A30 → #EF9F27`)
+
+---
+
 ## Features Section — Carousel
 
 The landing page features section (`src/app/page.tsx`) uses a 5-slide image carousel replacing the old static grid.
@@ -382,3 +478,7 @@ Navbar on landing page: sticky glass effect via `.tt-nav-sticky` (globals.css) �
 | `type` column null for old sessions | Existing rows stored NULL before default added | Guard: `(r.type ?? 'tutor') as 'tutor' \| 'exam'` |
 | Literal `$2` in option text | `formatAiText` regex used `'\nOption $2'` with one capture group | Use `'\n$1'` |
 | Navbar dividing line visible | Tailwind base `* { border-border }` adds border-color to `<nav>` | `.tt-nav-sticky` must have `border: none` |
+| Seek slider pins to 100% immediately | WebM metadata reports wrong (too-short) duration; `max` is too small so `currentTime > max` pins slider | Read `v.duration` inside `onTimeUpdate` and call `setVidDur` to self-correct |
+| Seek slider snaps back after drag | `vidSeek` set `currentTime` but not `vidTime` state; React re-rendered with old value before `onTimeUpdate` fired | Always call both `setVidTime(val)` AND `vidRef.current.currentTime = val` in `vidSeek` |
+| Clicking seek slider plays/pauses video | Play overlay (`zIndex: 2`) intercepted clicks intended for the controls bar | Controls bar must have explicit `zIndex: 10` |
+| Duration shows 0:00 | Same as "slider pins to 100%" — stale `vidDur` from bad metadata | Fixed by same `onTimeUpdate` duration sync |

@@ -204,6 +204,19 @@ export default function LandingPage() {
     }
   }, [isSignedIn, user]);
 
+  // ── Scroll state ──
+  const [scrolled, setScrolled] = useState(false);
+  const [btnBottom, setBtnBottom] = useState(32);
+  useEffect(() => {
+    const onScroll = () => {
+      setScrolled(window.scrollY > 380);
+      const distFromBottom = document.documentElement.scrollHeight - window.scrollY - window.innerHeight;
+      setBtnBottom(distFromBottom < 320 ? Math.max(32, 320 - distFromBottom + 32) : 32);
+    };
+    window.addEventListener('scroll', onScroll, { passive: true });
+    return () => window.removeEventListener('scroll', onScroll);
+  }, []);
+
   // ── Feature carousel ──
   const [featIdx, setFeatIdx] = useState(0);
   const [featAnim, setFeatAnim] = useState(false);
@@ -213,6 +226,36 @@ export default function LandingPage() {
       setFeatIdx((next + FEATURE_SLIDES.length) % FEATURE_SLIDES.length);
       setFeatAnim(false);
     }, 180);
+  };
+
+  // ── How It Works video player ──
+  const [vidPlaying, setVidPlaying] = useState(false);
+  const [vidTime, setVidTime] = useState(0);
+  const [vidDur, setVidDur] = useState(0);
+  const [showVidMobile, setShowVidMobile] = useState(false);
+  const vidRef = useRef<HTMLVideoElement>(null);
+  const vidWrapRef = useRef<HTMLDivElement>(null);
+
+  const vidToggle = () => {
+    const v = vidRef.current;
+    if (!v) return;
+    if (v.paused) { v.play().then(() => setVidPlaying(true)).catch(() => {}); }
+    else { v.pause(); setVidPlaying(false); }
+  };
+  const vidSkip = (s: number) => {
+    if (vidRef.current) vidRef.current.currentTime = Math.max(0, Math.min(vidRef.current.duration || 0, vidRef.current.currentTime + s));
+  };
+  const vidSeek = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const val = Number(e.target.value);
+    setVidTime(val);
+    if (vidRef.current) vidRef.current.currentTime = val;
+  };
+  const fmtTime = (s: number) => `${Math.floor(s / 60)}:${String(Math.floor(s % 60)).padStart(2, '0')}`;
+  const vidFullscreen = () => {
+    if (vidWrapRef.current) {
+      if (document.fullscreenElement) { document.exitFullscreen(); }
+      else { vidWrapRef.current.requestFullscreen().catch(() => {}); }
+    }
   };
 
   // ── Video carousel ──
@@ -426,6 +469,21 @@ export default function LandingPage() {
       </section>
       </div>{/* end nav+hero video wrapper */}
 
+      {/* ── Scroll-down hint (visible only near top) ── */}
+      {!scrolled && (
+        <div style={{ display: 'flex', justifyContent: 'center', padding: '8px 0 0', position: 'relative', zIndex: 10 }}>
+          <button
+            onClick={() => document.getElementById('features')?.scrollIntoView({ behavior: 'smooth' })}
+            title="Scroll down"
+            style={{ background: 'none', border: 'none', cursor: 'pointer', padding: 8, display: 'flex', alignItems: 'center', justifyContent: 'center', animation: 'float-y 2s ease-in-out infinite' }}
+          >
+            <svg width="30" height="30" viewBox="0 0 24 24" fill="none">
+              <path d="M12 5v14M5 12l7 7 7-7" stroke="#D85A30" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" opacity="0.65"/>
+            </svg>
+          </button>
+        </div>
+      )}
+
       {/* ── VoiceOrb ── */}
       <section className="tt-section" style={{ paddingTop: 56, paddingBottom: 56, textAlign: 'center', display: 'flex', flexDirection: 'column', alignItems: 'center' }}>
         <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', gap: 20 }}>
@@ -567,62 +625,191 @@ export default function LandingPage() {
       </section>
 
       {/* ── How It Works ── */}
-      <section id="howitworks" className="tt-section" style={{ paddingTop: 20, paddingBottom: 96, background: 'linear-gradient(180deg, #FFFBF7 0%, #FFF4EE 100%)' }}>
-        <h2 style={{ textAlign: 'center', fontSize: 'clamp(26px, 4vw, 40px)', fontWeight: 700, color: '#4A1B0C', marginBottom: 12, letterSpacing: '-1px', fontFamily: 'var(--font-poppins)' }}>How TutorTalk works</h2>
-        <p style={{ textAlign: 'center', color: '#993C1D', fontSize: 15, marginBottom: 52, opacity: 0.75 }}>Three steps to real understanding</p>
-        <div className="tt-grid-3" style={{ maxWidth: 1020, margin: '0 auto' }}>
-          {[
-            {
-              step: '01',
-              title: 'Pick a subject',
-              desc: 'Choose any topic, subject, or exam level — from Class 10 basics to JEE, NEET, or UPSC advanced prep.',
-              icon: (
-                <svg viewBox="0 0 36 36" width="30" height="30" fill="none">
-                  <circle cx="18" cy="18" r="18" fill="#FAECE7" />
-                  <rect x="10" y="11" width="16" height="14" rx="3" fill="#D85A30" opacity="0.25" />
-                  <rect x="10" y="11" width="16" height="14" rx="3" stroke="#D85A30" strokeWidth="1.8" />
-                  <line x1="14" y1="16" x2="22" y2="16" stroke="#D85A30" strokeWidth="1.6" strokeLinecap="round" />
-                  <line x1="14" y1="20" x2="19" y2="20" stroke="#D85A30" strokeWidth="1.6" strokeLinecap="round" />
-                </svg>
-              ),
-            },
-            {
-              step: '02',
-              title: 'Speak freely',
-              desc: 'Talk like you would with a great teacher. TutorTalk listens, asks guiding questions, and never just hands you the answer.',
-              icon: (
-                <svg viewBox="0 0 36 36" width="30" height="30" fill="none">
-                  <circle cx="18" cy="18" r="18" fill="#EEEDFE" />
-                  <rect x="14" y="10" width="8" height="11" rx="4" fill="#7F77DD" />
-                  <path d="M11 20c0 3.866 3.134 7 7 7s7-3.134 7-7" stroke="#7F77DD" strokeWidth="2" strokeLinecap="round" />
-                  <line x1="18" y1="27" x2="18" y2="30" stroke="#7F77DD" strokeWidth="2" strokeLinecap="round" />
-                </svg>
-              ),
-            },
-            {
-              step: '03',
-              title: 'Get your report',
-              desc: 'Every session ends with a downloadable PDF — full transcript, key concepts, and progress notes for revision.',
-              icon: (
-                <svg viewBox="0 0 36 36" width="30" height="30" fill="none">
-                  <circle cx="18" cy="18" r="18" fill="#E0F5EE" />
-                  <rect x="11" y="9" width="14" height="18" rx="3" fill="#1D9E75" opacity="0.25" />
-                  <rect x="11" y="9" width="14" height="18" rx="3" stroke="#1D9E75" strokeWidth="1.8" />
-                  <line x1="14" y1="14" x2="22" y2="14" stroke="#1D9E75" strokeWidth="1.6" strokeLinecap="round" />
-                  <line x1="14" y1="18" x2="22" y2="18" stroke="#1D9E75" strokeWidth="1.6" strokeLinecap="round" />
-                  <line x1="14" y1="22" x2="18" y2="22" stroke="#1D9E75" strokeWidth="1.6" strokeLinecap="round" />
-                </svg>
-              ),
-            },
-          ].map((s, i) => (
-            <div key={i} style={{ background: '#FFF8F3', borderRadius: 20, padding: '36px 30px', boxShadow: '0 2px 24px rgba(216,90,48,0.07)', position: 'relative', overflow: 'hidden' }}>
-              <div style={{ position: 'absolute', top: 22, right: 22, fontSize: 48, fontWeight: 900, color: '#D85A30', opacity: 0.06, fontFamily: 'var(--font-poppins)', lineHeight: 1 }}>{s.step}</div>
-              <div style={{ display: 'inline-flex', alignItems: 'center', justifyContent: 'center', width: 32, height: 32, borderRadius: 10, background: 'linear-gradient(135deg,#D85A30,#EF9F27)', color: '#FFFBF7', fontWeight: 800, fontSize: 13, marginBottom: 18, fontFamily: 'var(--font-poppins)' }}>{s.step}</div>
-              <div style={{ width: 52, height: 52, borderRadius: 14, display: 'flex', alignItems: 'center', justifyContent: 'center', marginBottom: 18 }}>{s.icon}</div>
-              <h3 style={{ fontSize: 19, fontWeight: 700, color: '#4A1B0C', marginBottom: 12, letterSpacing: '-0.3px', fontFamily: 'var(--font-poppins)' }}>{s.title}</h3>
-              <p style={{ color: '#993C1D', lineHeight: 1.72, fontSize: 14.5 }}>{s.desc}</p>
+      <section id="howitworks" className="tt-section" style={{ paddingTop: 72, paddingBottom: 96, background: 'linear-gradient(180deg, #FFFBF7 0%, #FFF4EE 100%)' }}>
+        <div style={{ maxWidth: 1160, margin: '0 auto', padding: '0 24px' }}>
+          {/* Header */}
+          <div style={{ textAlign: 'center', marginBottom: 56 }}>
+            <span style={{ display: 'inline-block', background: 'linear-gradient(135deg,#D85A30,#EF9F27)', color: '#FFFBF7', fontFamily: 'var(--font-poppins)', fontWeight: 700, fontSize: 12, letterSpacing: '0.08em', textTransform: 'uppercase', padding: '5px 14px', borderRadius: 20, marginBottom: 16 }}>How it works</span>
+            <h2 style={{ fontSize: 'clamp(26px, 4vw, 44px)', fontWeight: 800, color: '#4A1B0C', marginBottom: 14, letterSpacing: '-1.5px', fontFamily: 'var(--font-poppins)', lineHeight: 1.1 }}>Three steps to real understanding</h2>
+            <p style={{ color: '#993C1D', fontSize: 16, opacity: 0.7, maxWidth: 480, margin: '0 auto' }}>Pick a topic, speak naturally, and walk away with a PDF recap of everything you learned.</p>
+          </div>
+
+          {/* Split layout */}
+          <div style={{ display: 'flex', flexWrap: 'wrap', gap: 48, alignItems: 'center' }}>
+
+            {/* LEFT — steps */}
+            <div style={{ flex: '1 1 340px', minWidth: 0 }}>
+              {[
+                {
+                  step: '01',
+                  title: 'Pick a subject',
+                  desc: 'Choose any topic, subject, or exam level — from Class 10 basics to JEE, NEET, or UPSC advanced prep.',
+                  accent: '#D85A30',
+                  bg: '#FAECE7',
+                  icon: (
+                    <svg viewBox="0 0 28 28" width="22" height="22" fill="none">
+                      <rect x="4" y="5" width="20" height="18" rx="4" fill="#D85A30" opacity="0.2" />
+                      <rect x="4" y="5" width="20" height="18" rx="4" stroke="#D85A30" strokeWidth="1.8" />
+                      <line x1="8" y1="11" x2="20" y2="11" stroke="#D85A30" strokeWidth="1.6" strokeLinecap="round" />
+                      <line x1="8" y1="16" x2="15" y2="16" stroke="#D85A30" strokeWidth="1.6" strokeLinecap="round" />
+                    </svg>
+                  ),
+                },
+                {
+                  step: '02',
+                  title: 'Speak freely',
+                  desc: 'Talk like you would with a great teacher. TutorTalk listens, asks guiding questions, and never just hands you the answer.',
+                  accent: '#7F77DD',
+                  bg: '#EEEDFE',
+                  icon: (
+                    <svg viewBox="0 0 28 28" width="22" height="22" fill="none">
+                      <rect x="10" y="4" width="8" height="12" rx="4" fill="#7F77DD" opacity="0.25" />
+                      <rect x="10" y="4" width="8" height="12" rx="4" stroke="#7F77DD" strokeWidth="1.8" />
+                      <path d="M6 14c0 4.4 3.6 8 8 8s8-3.6 8-8" stroke="#7F77DD" strokeWidth="1.8" strokeLinecap="round" />
+                      <line x1="14" y1="22" x2="14" y2="26" stroke="#7F77DD" strokeWidth="1.8" strokeLinecap="round" />
+                    </svg>
+                  ),
+                },
+                {
+                  step: '03',
+                  title: 'Get your report',
+                  desc: 'Every session ends with a downloadable PDF — full transcript, key concepts, and progress notes for revision.',
+                  accent: '#1D9E75',
+                  bg: '#E0F5EE',
+                  icon: (
+                    <svg viewBox="0 0 28 28" width="22" height="22" fill="none">
+                      <rect x="5" y="3" width="18" height="22" rx="4" fill="#1D9E75" opacity="0.18" />
+                      <rect x="5" y="3" width="18" height="22" rx="4" stroke="#1D9E75" strokeWidth="1.8" />
+                      <line x1="9" y1="10" x2="19" y2="10" stroke="#1D9E75" strokeWidth="1.5" strokeLinecap="round" />
+                      <line x1="9" y1="15" x2="19" y2="15" stroke="#1D9E75" strokeWidth="1.5" strokeLinecap="round" />
+                      <line x1="9" y1="20" x2="14" y2="20" stroke="#1D9E75" strokeWidth="1.5" strokeLinecap="round" />
+                    </svg>
+                  ),
+                },
+              ].map((s, i) => (
+                <div key={i} style={{ display: 'flex', gap: 20, alignItems: 'flex-start', marginBottom: i < 2 ? 32 : 0 }}>
+                  {/* Step number + icon */}
+                  <div style={{ flexShrink: 0, display: 'flex', flexDirection: 'column', alignItems: 'center', gap: 0 }}>
+                    <div style={{ width: 52, height: 52, borderRadius: 16, background: s.bg, display: 'flex', alignItems: 'center', justifyContent: 'center', position: 'relative', boxShadow: `0 4px 16px ${s.accent}22` }}>
+                      {s.icon}
+                      <div style={{ position: 'absolute', top: -8, right: -8, width: 22, height: 22, borderRadius: 8, background: 'linear-gradient(135deg,#D85A30,#EF9F27)', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: 10, fontWeight: 800, color: '#FFFBF7', fontFamily: 'var(--font-poppins)' }}>{s.step}</div>
+                    </div>
+                    {i < 2 && <div style={{ width: 2, height: 32, background: 'linear-gradient(180deg, rgba(216,90,48,0.25) 0%, transparent 100%)', marginTop: 8 }} />}
+                  </div>
+                  {/* Text */}
+                  <div style={{ paddingTop: 6 }}>
+                    <h3 style={{ fontSize: 17, fontWeight: 700, color: '#4A1B0C', marginBottom: 6, letterSpacing: '-0.3px', fontFamily: 'var(--font-poppins)' }}>{s.title}</h3>
+                    <p style={{ color: '#993C1D', lineHeight: 1.7, fontSize: 14, opacity: 0.85 }}>{s.desc}</p>
+                  </div>
+                </div>
+              ))}
+
+              {/* Mobile: watch button */}
+              <button
+                className="hiw-watch-btn"
+                onClick={() => setShowVidMobile(true)}
+                style={{ marginTop: 32, display: 'none', alignItems: 'center', gap: 10, background: 'linear-gradient(135deg,#D85A30,#EF9F27)', color: '#FFFBF7', border: 'none', borderRadius: 14, padding: '12px 22px', fontFamily: 'var(--font-poppins)', fontWeight: 700, fontSize: 14, cursor: 'pointer' }}
+              >
+                <svg width="18" height="18" viewBox="0 0 24 24" fill="none"><circle cx="12" cy="12" r="10" fill="rgba(255,255,255,0.25)"/><polygon points="10,8 18,12 10,16" fill="#FFFBF7"/></svg>
+                Watch how it works
+              </button>
             </div>
-          ))}
+
+            {/* RIGHT — video player */}
+            <div
+              className={`hiw-vid-col${showVidMobile ? ' hiw-vid-open' : ''}`}
+              style={{ flex: '1 1 460px', minWidth: 0 }}
+            >
+              <div
+                ref={vidWrapRef}
+                style={{ position: 'relative', borderRadius: 20, overflow: 'hidden', boxShadow: '0 8px 48px rgba(216,90,48,0.18)', border: '2px solid rgba(216,90,48,0.15)', background: '#1a0a06' }}
+              >
+                {/* Close button for mobile overlay */}
+                <button
+                  className="hiw-vid-close"
+                  title="Close video"
+                  onClick={() => { vidRef.current?.pause(); setVidPlaying(false); setShowVidMobile(false); }}
+                  style={{ position: 'absolute', top: 12, right: 12, zIndex: 10, width: 32, height: 32, borderRadius: '50%', background: 'rgba(0,0,0,0.55)', backdropFilter: 'blur(6px)', border: 'none', color: '#fff', display: 'none', alignItems: 'center', justifyContent: 'center', cursor: 'pointer' }}
+                >
+                  <svg width="14" height="14" viewBox="0 0 14 14" fill="none"><line x1="1" y1="1" x2="13" y2="13" stroke="white" strokeWidth="2" strokeLinecap="round"/><line x1="13" y1="1" x2="1" y2="13" stroke="white" strokeWidth="2" strokeLinecap="round"/></svg>
+                </button>
+
+                {/* Video */}
+                <video
+                  ref={vidRef}
+                  src="https://res.cloudinary.com/dkqbzwicr/video/upload/q_auto/f_auto/v1777015522/tutortalkvideo_bzd31u.webm"
+                  playsInline
+                  preload="metadata"
+                  style={{ width: '100%', display: 'block', aspectRatio: '16/9', objectFit: 'cover' }}
+                  onLoadedMetadata={() => { const d = vidRef.current?.duration; if (d && isFinite(d)) setVidDur(d); }}
+                  onDurationChange={() => { const d = vidRef.current?.duration; if (d && isFinite(d)) setVidDur(d); }}
+                  onTimeUpdate={() => {
+                    const v = vidRef.current;
+                    if (!v) return;
+                    setVidTime(v.currentTime);
+                    if (v.duration && isFinite(v.duration)) setVidDur(v.duration);
+                  }}
+                  onEnded={() => setVidPlaying(false)}
+                  onClick={vidToggle}
+                />
+
+                {/* Big play overlay when paused */}
+                {!vidPlaying && (
+                  <div
+                    onClick={vidToggle}
+                    style={{ position: 'absolute', inset: 0, zIndex: 2, display: 'flex', alignItems: 'center', justifyContent: 'center', background: 'rgba(0,0,0,0.28)', cursor: 'pointer' }}
+                  >
+                    <div style={{ width: 64, height: 64, borderRadius: '50%', background: 'rgba(255,255,255,0.18)', backdropFilter: 'blur(8px)', display: 'flex', alignItems: 'center', justifyContent: 'center', border: '2px solid rgba(255,255,255,0.35)' }}>
+                      <svg width="24" height="24" viewBox="0 0 24 24" fill="none"><polygon points="8,5 21,12 8,19" fill="white"/></svg>
+                    </div>
+                  </div>
+                )}
+
+                {/* Controls bar */}
+                <div style={{ position: 'absolute', bottom: 0, left: 0, right: 0, zIndex: 10, background: 'rgba(0,0,0,0.68)', backdropFilter: 'blur(10px)', padding: '6px 14px 10px' }}>
+                  {/* Seek slider */}
+                  <input
+                    type="range"
+                    title="Seek video"
+                    min={0}
+                    max={vidDur > 0 ? vidDur : 100}
+                    step={0.1}
+                    value={vidTime}
+                    onChange={vidSeek}
+                    className="vid-seek"
+                    style={{ width: '100%', height: 4, borderRadius: 2, marginBottom: 8, cursor: 'pointer', accentColor: '#EF9F27', display: 'block' }}
+                  />
+                  {/* Buttons row */}
+                  <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
+                    {/* −10 s */}
+                    <button onClick={() => vidSkip(-10)} title="Back 10s" style={{ background: 'none', border: 'none', color: '#fff', cursor: 'pointer', padding: 4, display: 'flex', alignItems: 'center', opacity: 0.85 }}>
+                      <svg width="20" height="20" viewBox="0 0 24 24" fill="none"><path d="M12 5V1L7 6l5 5V7c3.31 0 6 2.69 6 6s-2.69 6-6 6-6-2.69-6-6H4c0 4.42 3.58 8 8 8s8-3.58 8-8-3.58-8-8-8z" fill="white"/><text x="9" y="15" fontSize="7" fill="white" fontFamily="sans-serif">10</text></svg>
+                    </button>
+                    {/* Play/Pause */}
+                    <button onClick={vidToggle} title={vidPlaying ? 'Pause' : 'Play'} style={{ background: 'none', border: 'none', color: '#fff', cursor: 'pointer', padding: 4, display: 'flex', alignItems: 'center' }}>
+                      {vidPlaying
+                        ? <svg width="22" height="22" viewBox="0 0 24 24" fill="none"><rect x="5" y="4" width="4" height="16" rx="1.5" fill="white"/><rect x="15" y="4" width="4" height="16" rx="1.5" fill="white"/></svg>
+                        : <svg width="22" height="22" viewBox="0 0 24 24" fill="none"><polygon points="5,3 21,12 5,21" fill="white"/></svg>
+                      }
+                    </button>
+                    {/* +10 s */}
+                    <button onClick={() => vidSkip(10)} title="Forward 10s" style={{ background: 'none', border: 'none', color: '#fff', cursor: 'pointer', padding: 4, display: 'flex', alignItems: 'center', opacity: 0.85 }}>
+                      <svg width="20" height="20" viewBox="0 0 24 24" fill="none"><path d="M12 5V1l5 5-5 5V7c-3.31 0-6 2.69-6 6s2.69 6 6 6 6-2.69 6-6h2c0 4.42-3.58 8-8 8s-8-3.58-8-8 3.58-8 8-8z" fill="white"/><text x="9" y="15" fontSize="7" fill="white" fontFamily="sans-serif">10</text></svg>
+                    </button>
+                    {/* Time */}
+                    <span style={{ color: 'rgba(255,255,255,0.8)', fontSize: 12, fontFamily: 'monospace', marginLeft: 2 }}>{fmtTime(vidTime)} / {fmtTime(vidDur)}</span>
+                    {/* Spacer */}
+                    <div style={{ flex: 1 }} />
+                    {/* Fullscreen */}
+                    <button onClick={vidFullscreen} title="Fullscreen" style={{ background: 'none', border: 'none', color: '#fff', cursor: 'pointer', padding: 4, display: 'flex', alignItems: 'center', opacity: 0.85 }}>
+                      <svg width="20" height="20" viewBox="0 0 24 24" fill="none"><path d="M7 14H5v5h5v-2H7v-3zm-2-4h2V7h3V5H5v5zm12 7h-3v2h5v-5h-2v3zM14 5v2h3v3h2V5h-5z" fill="white"/></svg>
+                    </button>
+                  </div>
+                </div>
+              </div>
+            </div>
+
+          </div>
         </div>
       </section>
 
@@ -782,6 +969,27 @@ export default function LandingPage() {
           </SignUpButton>
         )}
       </section>
+      {/* ── Scroll-to-top button (visible when scrolled down) ── */}
+      {scrolled && (
+        <button
+          onClick={() => window.scrollTo({ top: 0, behavior: 'smooth' })}
+          title="Back to top"
+          style={{
+            position: 'fixed', bottom: btnBottom, right: 32, zIndex: 999,
+            transition: 'bottom 0.25s ease',
+            width: 46, height: 46, borderRadius: '50%',
+            background: 'linear-gradient(135deg, #D85A30, #EF9F27)',
+            border: 'none', cursor: 'pointer',
+            display: 'flex', alignItems: 'center', justifyContent: 'center',
+            boxShadow: '0 4px 20px rgba(216,90,48,0.4)',
+            animation: 'float-y 2.5s ease-in-out infinite',
+          }}
+        >
+          <svg width="20" height="20" viewBox="0 0 24 24" fill="none">
+            <path d="M12 19V5M5 12l7-7 7 7" stroke="#FFFBF7" strokeWidth="2.3" strokeLinecap="round" strokeLinejoin="round"/>
+          </svg>
+        </button>
+      )}
     </div>
   );
 }
