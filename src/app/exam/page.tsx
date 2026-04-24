@@ -173,14 +173,14 @@ export default function ExamPage() {
   const [examsLeft, setExamsLeft] = useState<number | null>(null);
 
   useEffect(() => {
-    if (isFree) {
+    if (isFree && phase === 'picking') {
       fetch('/api/exam/status').then(r => r.json()).then(d => {
         if (d.limitReached) setExamLimitReached(true);
         if (d.examsLeft !== null) setExamsLeft(d.examsLeft);
       }).catch(() => {});
     }
   // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, []);
+  }, [phase]);
 
   useEffect(() => { setSubject(null); }, [level]);
 
